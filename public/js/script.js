@@ -1592,9 +1592,11 @@ function handleSaleSaved(savedSale) {
 }
 
 //
-// Override/replace the existing sales form submit handler with this robust one.
-// It posts sale, waits for server response, then updates local state and UI.
+// Interactive POS Payment Gateway Simulator Logic
 //
+let currentPendingSalePayload = null;
+let selectedBankName = 'HDFC Bank';
+
 const salesForm = document.getElementById('salesForm');
 if (salesForm) {
   salesForm.addEventListener('submit', function (e) {
@@ -1613,66 +1615,250 @@ if (salesForm) {
     }
 
     const paymentMethod = document.getElementById('paymentMethodSelect')?.value || 'Cash';
-    const transactionRef = document.getElementById('transactionRefInput')?.value || '';
+    const total = items.reduce((s, i) => s + (i.subtotal || 0), 0);
 
-    const payload = {
-      customerName: document.getElementById('customerName')?.value || '',
+    currentPendingSalePayload = {
+      customerName: document.getElementById('customerName')?.value || 'Walk-in Customer',
       customerPhone: document.getElementById('customerPhone')?.value || '',
       date: document.getElementById('saleDate')?.value || getLocalDateString(),
       paymentMethod,
-      transactionRef,
+      transactionRef: document.getElementById('transactionRefInput')?.value || '',
       items,
-      total: items.reduce((s, i) => s + (i.subtotal || 0), 0)
+      total
     };
 
-    // disable submit button to avoid double submits
-    const submitBtn = salesForm.querySelector('button[type="submit"]');
-    if (submitBtn) submitBtn.disabled = true;
-
-    const authHeaders = typeof getAuthHeaders === 'function' ? getAuthHeaders() : {};
-
-    fetch('/api/sales', {
-      method: 'POST',
-      headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders),
-      body: JSON.stringify(payload)
-    })
-      .then(async r => {
-        if (!r.ok) {
-          const body = await r.text().catch(() => '<no body>');
-          throw new Error(`Server error: ${r.status} ${r.statusText} — ${body}`);
-        }
-        return r.json();
-      })
-      .then(saved => {
-        // clear form UI
-        this.reset();
-        // remove additional sale item rows except the first template row (optional)
-        const saleItemsDiv = document.getElementById('saleItems');
-        if (saleItemsDiv) {
-          saleItemsDiv.innerHTML = ''; // clear all; render an empty initial row
-          const initialDiv = document.createElement('div');
-          initialDiv.className = 'form-group';
-          initialDiv.innerHTML = `<div style="display:flex;gap:1rem;align-items:center;">
-          <select style="flex:2;" class="sale-medicine"><option value="">Select Medicine</option>
-            ${medicinesData.map(m => `<option value="${m.id}">${m.name} - ₹${m.price}</option>`).join('')}
-          </select>
-          <input type="number" placeholder="Qty" style="flex:1;" min="1" class="sale-quantity">
-          <button type="button" class="btn" onclick="addSaleItem()">Add Item</button>
-        </div>`;
-          saleItemsDiv.appendChild(initialDiv);
-        }
-
-        // process saved sale object
-        handleSaleSaved(saved);
-      })
-      .catch(err => {
-        console.error('Sale save failed', err);
-        showAlert('Failed to record sale: ' + (err.message || err), 'error');
-      })
-      .finally(() => {
-        if (submitBtn) submitBtn.disabled = false;
-      });
+    openPOSPaymentModal();
   });
+}
+
+function openPOSPaymentModal() {
+  if (!currentPendingSalePayload) return;
+  const modal = document.getElementById('posPaymentModal');
+  if (!modal) return;
+
+  const totalEl = document.getElementById('posPayModalTotal');
+  const custEl = document.getElementById('posPayModalCustomer');
+  if (totalEl) totalEl.textContent = `₹${Number(currentPendingSalePayload.total || 0).toFixed(2)}`;
+  if (custEl) custEl.textContent = currentPendingSalePayload.customerName || 'Walk-in Customer';
+
+  // Hide all payment panels
+  document.querySelectorAll('.pay-panel').forEach(p => p.style.display = 'none');
+
+  const method = currentPendingSalePayload.paymentMethod;
+
+  if (method === 'UPI') {
+    const qrImg = document.getElementById('upiQRCodeImg');
+    if (qrImg) {
+      const upiUrl = `upi://pay?pa=medivault@upi&pn=MediVault+Healthcare&am=${currentPendingSalePayload.total.toFixed(2)}&cu=INR`;
+      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`;
+    }
+    const panel = document.getElementById('payPanelUPI');
+    if (panel) panel.style.display = 'block';
+  } else if (method === 'Card') {
+    const numInp = document.getElementById('cardNumInput');
+    const nameInp = document.getElementById('cardNameVisual');
+    if (numInp) numInp.value = '';
+    if (nameInp) nameInp.textContent = currentPendingSalePayload.customerName || 'VALUED CUSTOMER';
+    updateCardVisual();
+    const panel = document.getElementById('payPanelCard');
+    if (panel) panel.style.display = 'block';
+  } else if (method === 'NetBanking') {
+    const panel = document.getElementById('payPanelNetBanking');
+    if (panel) panel.style.display = 'block';
+  } else if (method === 'Credit') {
+    const panel = document.getElementById('payPanelCredit');
+    if (panel) panel.style.display = 'block';
+  } else {
+    // Default: Cash
+    const cashInp = document.getElementById('cashTenderedInput');
+    if (cashInp) cashInp.value = currentPendingSalePayload.total;
+    calculateCashChange();
+    const panel = document.getElementById('payPanelCash');
+    if (panel) panel.style.display = 'block';
+  }
+
+  modal.style.display = 'flex';
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function closePOSPaymentModal() {
+  const modal = document.getElementById('posPaymentModal');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+  }
+}
+
+// Interactive Payment Actions
+function simulateUPIPaymentSuccess() {
+  const randomRef = `TXN-UPI-${Math.floor(100000 + Math.random() * 900000)}`;
+  showAlert(`UPI Payment Authorized! Ref: ${randomRef}`, 'success');
+  finalizePOSSale(randomRef);
+}
+
+function updateCardVisual() {
+  const numVal = document.getElementById('cardNumInput')?.value || '';
+  const expVal = document.getElementById('cardExpInput')?.value || '';
+
+  const numVisual = document.getElementById('cardNumberVisual');
+  const expVisual = document.getElementById('cardExpiryVisual');
+  const brandVisual = document.getElementById('cardBrandVisual');
+
+  if (numVisual) numVisual.textContent = numVal ? numVal.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim() : '•••• •••• •••• ••••';
+  if (expVisual) expVisual.textContent = expVal || '12/28';
+
+  if (brandVisual) {
+    if (numVal.startsWith('4')) brandVisual.textContent = 'VISA';
+    else if (numVal.startsWith('5')) brandVisual.textContent = 'MASTERCARD';
+    else if (numVal.startsWith('6')) brandVisual.textContent = 'RUPAY';
+    else brandVisual.textContent = 'VISA / MASTERCARD';
+  }
+}
+
+function processCardPaymentSubmit() {
+  const numVal = document.getElementById('cardNumInput')?.value;
+  const expVal = document.getElementById('cardExpInput')?.value;
+  const cvvVal = document.getElementById('cardCvvInput')?.value;
+
+  if (!numVal || numVal.length < 12) return showAlert('Please enter a valid card number', 'warning');
+  if (!expVal) return showAlert('Please enter card expiration date', 'warning');
+  if (!cvvVal || cvvVal.length < 3) return showAlert('Please enter valid 3-digit CVV', 'warning');
+
+  // Open OTP Modal
+  const otpModal = document.getElementById('otpVerifyModal');
+  const otpInp = document.getElementById('otpCodeInput');
+  if (otpInp) otpInp.value = '123456';
+  if (otpModal) otpModal.style.display = 'flex';
+}
+
+function closeOTPModal() {
+  const otpModal = document.getElementById('otpVerifyModal');
+  if (otpModal) otpModal.style.display = 'none';
+}
+
+function submitOTPVerification() {
+  const otpInp = document.getElementById('otpCodeInput')?.value;
+  if (!otpInp || otpInp.length !== 6) return showAlert('Please enter valid 6-digit OTP', 'warning');
+
+  closeOTPModal();
+  const randomRef = `TXN-CARD-${Math.floor(100000 + Math.random() * 900000)}`;
+  showAlert(`Card Charged Successfully! Auth Ref: ${randomRef}`, 'success');
+  finalizePOSSale(randomRef);
+}
+
+function selectBank(el, bankName) {
+  document.querySelectorAll('.bank-pill').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+  selectedBankName = bankName;
+}
+
+function simulateNetBankingAuthorize() {
+  const randomRef = `TXN-NET-${Math.floor(100000 + Math.random() * 900000)}`;
+  showAlert(`Net Banking (${selectedBankName}) Authorized! Ref: ${randomRef}`, 'success');
+  finalizePOSSale(randomRef);
+}
+
+function calculateCashChange() {
+  if (!currentPendingSalePayload) return;
+  const total = currentPendingSalePayload.total || 0;
+  const tendered = Number(document.getElementById('cashTenderedInput')?.value || 0);
+  const change = tendered - total;
+
+  const changeDisplay = document.getElementById('cashChangeDisplay');
+  if (changeDisplay) {
+    if (change >= 0) {
+      changeDisplay.textContent = `₹${change.toFixed(2)}`;
+      changeDisplay.style.color = '#10B981';
+    } else {
+      changeDisplay.textContent = `Insufficient (₹${Math.abs(change).toFixed(2)} short)`;
+      changeDisplay.style.color = '#EF4444';
+    }
+  }
+}
+
+function applyCashPreset(amount) {
+  const inp = document.getElementById('cashTenderedInput');
+  if (inp) {
+    inp.value = amount;
+    calculateCashChange();
+  }
+}
+
+function applyExactCashPreset() {
+  if (!currentPendingSalePayload) return;
+  const inp = document.getElementById('cashTenderedInput');
+  if (inp) {
+    inp.value = currentPendingSalePayload.total;
+    calculateCashChange();
+  }
+}
+
+function confirmCashPaymentSubmit() {
+  if (!currentPendingSalePayload) return;
+  const total = currentPendingSalePayload.total || 0;
+  const tendered = Number(document.getElementById('cashTenderedInput')?.value || 0);
+
+  if (tendered < total) {
+    return showAlert(`Tendered cash (₹${tendered}) is less than payable total (₹${total}).`, 'warning');
+  }
+
+  const change = (tendered - total).toFixed(2);
+  const randomRef = `TXN-CASH-${Math.floor(100000 + Math.random() * 900000)}`;
+  showAlert(`Cash Received! Change to return: ₹${change}`, 'success');
+  finalizePOSSale(randomRef);
+}
+
+function confirmStoreCreditSubmit() {
+  const randomRef = `TXN-CREDIT-${Math.floor(100000 + Math.random() * 900000)}`;
+  showAlert(`Charged to Store Credit Account! Ref: ${randomRef}`, 'success');
+  finalizePOSSale(randomRef);
+}
+
+function finalizePOSSale(txnRef) {
+  if (!currentPendingSalePayload) return;
+  currentPendingSalePayload.transactionRef = txnRef;
+
+  const authHeaders = typeof getAuthHeaders === 'function' ? getAuthHeaders() : {};
+
+  fetch('/api/sales', {
+    method: 'POST',
+    headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders),
+    body: JSON.stringify(currentPendingSalePayload)
+  })
+    .then(async r => {
+      if (!r.ok) {
+        const body = await r.text().catch(() => '<no body>');
+        throw new Error(`Server error: ${r.status} ${r.statusText} — ${body}`);
+      }
+      return r.json();
+    })
+    .then(saved => {
+      closePOSPaymentModal();
+      const salesFormEl = document.getElementById('salesForm');
+      if (salesFormEl) salesFormEl.reset();
+
+      const saleItemsDiv = document.getElementById('saleItems');
+      if (saleItemsDiv) {
+        saleItemsDiv.innerHTML = '';
+        const initialDiv = document.createElement('div');
+        initialDiv.className = 'form-group';
+        initialDiv.innerHTML = `<div style="display:flex;gap:1rem;align-items:center;">
+        <select style="flex:2;" class="sale-medicine"><option value="">Select Medicine</option>
+          ${medicinesData.map(m => `<option value="${m.id}">${m.name} - ₹${m.price}</option>`).join('')}
+        </select>
+        <input type="number" placeholder="Qty" style="flex:1;" min="1" class="sale-quantity">
+        <button type="button" class="btn" onclick="addSaleItem()">Add Item</button>
+      </div>`;
+        saleItemsDiv.appendChild(initialDiv);
+      }
+
+      currentPendingSalePayload = null;
+      handleSaleSaved(saved);
+    })
+    .catch(err => {
+      console.error('Sale submission failed:', err);
+      showAlert('Failed to process sale. Check server connection.', 'error');
+    });
 }
 
 // ---------- Backup / Restore / Clear (unchanged) ----------

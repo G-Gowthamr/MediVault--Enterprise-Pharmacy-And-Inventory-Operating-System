@@ -806,6 +806,166 @@
         </div>
     </div>
 
+    <!-- POS Interactive Payment Gateway Terminal Modal -->
+    <div id="posPaymentModal" class="modal-overlay" style="display: none;">
+        <div class="modal-card modal-lg">
+            <div class="modal-header">
+                <h3><i class="fas fa-credit-card" style="color: var(--primary);"></i> MediVault POS Payment Gateway</h3>
+                <button class="modal-close" onclick="closePOSPaymentModal()"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 1.5rem;">
+                <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                    <div>
+                        <span style="font-size: 0.85rem; color: var(--text-muted); display: block;">Total Payable Amount</span>
+                        <h2 id="posPayModalTotal" style="color: var(--primary); font-size: 1.8rem; font-family: 'Outfit', sans-serif; margin: 0;">₹0.00</h2>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="font-size: 0.85rem; color: var(--text-muted); display: block;">Customer</span>
+                        <strong id="posPayModalCustomer" style="color: var(--text-main);">Walk-in Customer</strong>
+                    </div>
+                </div>
+
+                <!-- UPI / QR Code Payment Screen -->
+                <div id="payPanelUPI" class="pay-panel" style="display: none; text-align: center;">
+                    <h4 style="margin-bottom: 0.5rem;"><i class="fas fa-qrcode" style="color: #10B981;"></i> Scan & Pay via UPI / QR Code</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Scan using any UPI App (GPay, PhonePe, Paytm, BHIM)</p>
+                    
+                    <div style="background: #ffffff; padding: 1rem; border-radius: 12px; display: inline-block; box-shadow: 0 4px 20px rgba(0,0,0,0.15); margin-bottom: 1rem;">
+                        <img id="upiQRCodeImg" src="" alt="UPI QR Code" style="width: 200px; height: 200px; display: block;">
+                    </div>
+                    <div style="font-family: monospace; font-size: 1.1rem; color: var(--text-main); margin-bottom: 1rem;">
+                        VPA: <strong style="color: var(--primary);">medivault@upi</strong>
+                    </div>
+                    <div style="display: flex; justify-content: center; gap: 0.8rem; margin-top: 1rem;">
+                        <button type="button" class="btn" onclick="simulateUPIPaymentSuccess()">
+                            <i class="fas fa-check-circle"></i> Simulate Mobile Scan & Authorize Payment
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Credit / Debit Card Terminal Screen -->
+                <div id="payPanelCard" class="pay-panel" style="display: none;">
+                    <h4 style="margin-bottom: 1rem;"><i class="fas fa-credit-card" style="color: #3B82F6;"></i> Credit / Debit Card Terminal</h4>
+                    
+                    <div class="virtual-card-visual" style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.2rem; color: #fff; margin-bottom: 1.2rem; position: relative;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                            <i class="fas fa-sim-card" style="font-size: 1.8rem; color: #f59e0b;"></i>
+                            <span id="cardBrandVisual" style="font-weight: 700; font-size: 1.1rem; letter-spacing: 1px; color: #38bdf8;">VISA / MASTERCARD</span>
+                        </div>
+                        <div id="cardNumberVisual" style="font-family: monospace; font-size: 1.3rem; letter-spacing: 3px; margin-bottom: 1rem;">•••• •••• •••• ••••</div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #94a3b8;">
+                            <span>CARDHOLDER NAME</span>
+                            <span>EXPIRES</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.95rem; font-weight: 600;">
+                            <span id="cardNameVisual">VALUED CUSTOMER</span>
+                            <span id="cardExpiryVisual">12/28</span>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 0.8rem; margin-bottom: 1rem;">
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-size: 0.8rem;">Card Number *</label>
+                            <input type="text" id="cardNumInput" placeholder="4532 8921 7312 9012" maxlength="19" oninput="updateCardVisual()">
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-size: 0.8rem;">Expiry (MM/YY) *</label>
+                            <input type="text" id="cardExpInput" placeholder="12/28" maxlength="5" oninput="updateCardVisual()">
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-size: 0.8rem;">CVV *</label>
+                            <input type="password" id="cardCvvInput" placeholder="•••" maxlength="3">
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn" style="width: 100%;" onclick="processCardPaymentSubmit()">
+                        <i class="fas fa-lock"></i> Process Card Charge & Send OTP
+                    </button>
+                </div>
+
+                <!-- Net Banking Portal Screen -->
+                <div id="payPanelNetBanking" class="pay-panel" style="display: none;">
+                    <h4 style="margin-bottom: 1rem;"><i class="fas fa-building-columns" style="color: #8B5CF6;"></i> Select Net Banking Portal</h4>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.8rem; margin-bottom: 1.5rem;">
+                        <div class="bank-pill active" onclick="selectBank(this, 'HDFC Bank')"><i class="fas fa-university"></i> HDFC Bank</div>
+                        <div class="bank-pill" onclick="selectBank(this, 'State Bank of India')"><i class="fas fa-university"></i> SBI Bank</div>
+                        <div class="bank-pill" onclick="selectBank(this, 'ICICI Bank')"><i class="fas fa-university"></i> ICICI Bank</div>
+                        <div class="bank-pill" onclick="selectBank(this, 'Axis Bank')"><i class="fas fa-university"></i> Axis Bank</div>
+                        <div class="bank-pill" onclick="selectBank(this, 'Kotak Mahindra')"><i class="fas fa-university"></i> Kotak Bank</div>
+                    </div>
+
+                    <button type="button" class="btn" style="width: 100%;" onclick="simulateNetBankingAuthorize()">
+                        <i class="fas fa-arrow-right-to-bracket"></i> Authorize Direct Bank Debit
+                    </button>
+                </div>
+
+                <!-- Cash Register & Change Calculator Screen -->
+                <div id="payPanelCash" class="pay-panel" style="display: none;">
+                    <h4 style="margin-bottom: 1rem;"><i class="fas fa-money-bill-wave" style="color: #10B981;"></i> Cash Tendered & Change Calculator</h4>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div class="form-group" style="margin: 0;">
+                            <label>Cash Received / Tendered (₹) *</label>
+                            <input type="number" id="cashTenderedInput" placeholder="Enter tendered cash" min="0" step="1" oninput="calculateCashChange()">
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label>Change Due to Customer (₹)</label>
+                            <div id="cashChangeDisplay" style="font-size: 1.5rem; font-weight: 700; color: var(--primary); padding: 0.5rem 0;">₹0.00</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 1.2rem;">
+                        <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.4rem;">Quick Cash Tender Presets:</label>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="applyCashPreset(100)">₹100</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="applyCashPreset(200)">₹200</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="applyCashPreset(500)">₹500</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="applyCashPreset(2000)">₹2000</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="applyExactCashPreset()">Exact Amount</button>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn" style="width: 100%;" onclick="confirmCashPaymentSubmit()">
+                        <i class="fas fa-cash-register"></i> Confirm Cash Received & Complete Sale
+                    </button>
+                </div>
+
+                <!-- Store Credit Account Screen -->
+                <div id="payPanelCredit" class="pay-panel" style="display: none;">
+                    <h4 style="margin-bottom: 1rem;"><i class="fas fa-receipt" style="color: #F59E0B;"></i> Charge to Store Credit Account</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+                        Charge invoice total directly to customer's approved store credit balance.
+                    </p>
+                    <button type="button" class="btn" style="width: 100%;" onclick="confirmStoreCreditSubmit()">
+                        <i class="fas fa-check-double"></i> Authorize Store Credit Charge
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- OTP Verification Modal for Card Payment -->
+    <div id="otpVerifyModal" class="modal-overlay" style="display: none;">
+        <div class="modal-card modal-sm" style="text-align: center;">
+            <div class="modal-header">
+                <h3><i class="fas fa-shield-halved" style="color: var(--primary);"></i> 3D Secure OTP Verification</h3>
+                <button class="modal-close" onclick="closeOTPModal()"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 1.5rem;">
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+                    Enter the 6-digit OTP sent to registered mobile number (Simulated OTP: <strong style="color: var(--primary);">123456</strong>):
+                </p>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <input type="text" id="otpCodeInput" placeholder="123456" maxlength="6" style="text-align: center; font-size: 1.4rem; letter-spacing: 4px; font-weight: 700;">
+                </div>
+                <button type="button" class="btn" style="width: 100%;" onclick="submitOTPVerification()">
+                    <i class="fas fa-check-double"></i> Authorize & Complete Sale
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Direct Stat Card Detail Pop-up Modal -->
     <div id="statDetailModal" class="modal-overlay" style="display: none;">
         <div class="modal-card modal-lg">
