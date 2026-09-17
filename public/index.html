@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediVault - Enterprise Pharmacy & Healthcare Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div class="app-layout">
+        <!-- Left Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-brand" onclick="showLandingPage()">
+                <i class="fas fa-notes-medical"></i>
+                <span>MediVault</span>
+            </div>
+
+            <!-- Logged-in User Profile Widget -->
+            <div id="userProfileBadge" class="sidebar-user-badge" style="display: none;">
+                <div class="user-avatar"><i class="fas fa-user-shield"></i></div>
+                <div class="user-info">
+                    <span id="sidebarUserName" class="user-name">Administrator</span>
+                    <span id="sidebarUserRole" class="user-role-badge">ADMIN</span>
+                </div>
+                <button onclick="logoutUser()" class="btn-logout" title="Sign Out">
+                    <i class="fas fa-arrow-right-from-bracket"></i>
+                </button>
+            </div>
+
+            <div class="sidebar-nav">
+                <div class="nav-section-title">PORTAL & HOME</div>
+                <div class="sidebar-nav-item" onclick="showLandingPage()" id="nav-landing">
+                    <i class="fas fa-globe"></i>
+                    <span>Public Home</span>
+                </div>
+
+                <!-- Internal Management Navigation (Visible only when authenticated) -->
+                <div class="authed-only-section" id="managementNavGroup" style="display: none;">
+                    <div class="nav-section-title">MANAGEMENT</div>
+                    <div class="sidebar-nav-item role-auth-only" onclick="showPage('dashboard')" id="nav-dashboard">
+                        <i class="fas fa-chart-pie"></i>
+                        <span>Dashboard</span>
+                    </div>
+                    <div class="sidebar-nav-item role-staff-only" onclick="showPage('inventory')" id="nav-inventory">
+                        <i class="fas fa-boxes-stacked"></i>
+                        <span>Inventory</span>
+                    </div>
+                    <div class="sidebar-nav-item role-staff-only" onclick="showPage('add-medicine')" id="nav-add-medicine">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Add Medicine</span>
+                    </div>
+                    <div class="sidebar-nav-item role-staff-only" onclick="showPage('bulk-upload')" id="nav-bulk-upload">
+                        <i class="fas fa-cloud-arrow-up"></i>
+                        <span>Bulk Upload</span>
+                    </div>
+                    <div class="sidebar-nav-item role-auth-only" onclick="showPage('sales')" id="nav-sales">
+                        <i class="fas fa-receipt"></i>
+                        <span>Sales & Billing</span>
+                    </div>
+                    <div class="sidebar-nav-item role-staff-only" onclick="showPage('reports')" id="nav-reports">
+                        <i class="fas fa-chart-column"></i>
+                        <span>Reports</span>
+                    </div>
+                </div>
+
+                <!-- Admin & Config Navigation (Visible only when authenticated) -->
+                <div class="authed-only-section" id="adminNavGroup" style="display: none;">
+                    <div class="nav-section-title">ADMIN & CONFIG</div>
+                    <div class="sidebar-nav-item role-settings-only" onclick="showPage('settings')" id="nav-settings">
+                        <i class="fas fa-sliders"></i>
+                        <span>Settings</span>
+                    </div>
+                    <div class="sidebar-nav-item role-admin-only" onclick="showPage('users-page')" id="nav-users-page">
+                        <i class="fas fa-users-gear"></i>
+                        <span>User Management</span>
+                    </div>
+                    <div class="sidebar-nav-item role-admin-only" onclick="showPage('audit-page')" id="nav-audit-page">
+                        <i class="fas fa-shield-halved"></i>
+                        <span>Audit Logs</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="theme-toggle-container" onclick="toggleTheme()" title="Switch Theme Mode">
+                    <div class="theme-toggle-info">
+                        <i class="fas fa-moon" id="sidebarThemeIcon"></i>
+                        <span id="sidebarThemeText">Dark Theme</span>
+                    </div>
+                    <div class="theme-switch-pill"></div>
+                </div>
+
+                <div class="header-status-badge">
+                    <span class="status-dot"></span>
+                    <span>System Online</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Workspace -->
+        <div class="main-content">
+            <header class="top-header">
+                <div class="top-header-left">
+                    <h2 id="topHeaderTitle" class="top-page-heading">Dashboard Overview</h2>
+                </div>
+                <div class="top-header-right">
+                    <button id="loginTriggerBtn" class="btn btn-sm" onclick="openAuthModal()" style="display: flex;">
+                        <i class="fas fa-right-to-bracket"></i> Sign In / Portal Access
+                    </button>
+                    <button class="theme-icon-btn" onclick="toggleTheme()" title="Toggle Dark / Light Theme" id="topThemeToggleBtn">
+                        <i class="fas fa-sun" id="topThemeIcon"></i>
+                    </button>
+                </div>
+            </header>
+
+            <main>
+                <!-- Public Landing Page -->
+                <div id="landing" class="page active">
+                    <div class="hero-section">
+                        <span class="hero-badge"><i class="fas fa-shield-heart"></i> Enterprise Healthcare Platform</span>
+                        <h1 class="hero-title">Next-Generation Intelligent Pharmacy & Inventory Operating System</h1>
+                        <p class="hero-subtitle">
+                            Streamline pharmaceutical inventory control, automated expiry radar, multi-channel POS billing, and real-time RBAC security in one unified platform.
+                        </p>
+                        <div class="hero-cta-group">
+                            <button class="btn btn-lg" onclick="openAuthModal()">
+                                <i class="fas fa-rocket"></i> Launch Management Portal / Sign In
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="landing-stats-bar">
+                        <div class="landing-stat-item">
+                            <h3>2,800+</h3>
+                            <p>Pharmaceutical Products Managed</p>
+                        </div>
+                        <div class="landing-stat-item">
+                            <h3>99.99%</h3>
+                            <p>POS Billing Uptime & Security</p>
+                        </div>
+                        <div class="landing-stat-item">
+                            <h3>&lt; 1 sec</h3>
+                            <p>Instant Invoice & Barcode Generation</p>
+                        </div>
+                        <div class="landing-stat-item">
+                            <h3>100%</h3>
+                            <p>Audit Logged RBAC Compliance</p>
+                        </div>
+                    </div>
+
+                    <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.6rem; margin: 3rem 0 1.5rem 0; text-align: center; color: var(--text-main);">
+                        Enterprise Core Features
+                    </h2>
+
+                    <div class="dashboard-grid">
+                        <div class="dashboard-card">
+                            <i class="fas fa-boxes-stacked"></i>
+                            <h3>Smart Inventory Control</h3>
+                            <p>Track real-time stock levels, batch numbers, manufacturer details, and automated reorder alerts.</p>
+                        </div>
+                        <div class="dashboard-card">
+                            <i class="fas fa-cash-register"></i>
+                            <h3>POS Terminal & Multi-Payment</h3>
+                            <p>Process instant billing via Cash, Credit/Debit Card, UPI / QR Code, Net Banking, or Credit accounts.</p>
+                        </div>
+                        <div class="dashboard-card">
+                            <i class="fas fa-user-shield"></i>
+                            <h3>Role-Based Access Control (RBAC)</h3>
+                            <p>Enforce strict permissions across Admin, Pharmacist, and Cashier team roles with JWT security.</p>
+                        </div>
+                        <div class="dashboard-card">
+                            <i class="fas fa-calendar-xmark"></i>
+                            <h3>Automated Expiry Radar</h3>
+                            <p>Identify batches nearing expiration thresholds with instant alerts and audit reports.</p>
+                        </div>
+                        <div class="dashboard-card">
+                            <i class="fas fa-fingerprint"></i>
+                            <h3>Real-Time Audit Trail</h3>
+                            <p>Complete historical log of every drug modification, user login, and sales transaction.</p>
+                        </div>
+                        <div class="dashboard-card">
+                            <i class="fas fa-database"></i>
+                            <h3>Dual DB Engine & Scaling</h3>
+                            <p>Runs zero-config SQLite locally, with instant PostgreSQL adapter scaling for production deployments.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Page -->
+                <div id="dashboard" class="page">
+                    <h1 class="page-title"><i class="fas fa-chart-pie" style="color: var(--primary);"></i> Dashboard Overview</h1>
+
+                    <div class="stats-grid">
+                        <div class="stat-card" onclick="showStatDetailModal('total')" title="Click to view all medicines details">
+                            <i class="fas fa-pills"></i>
+                            <h3 id="totalMedicines">--</h3>
+                            <p>Total Medicines in Stock (Click to view)</p>
+                        </div>
+                        <div class="stat-card" onclick="showStatDetailModal('lowstock')" title="Click to view low stock items">
+                            <i class="fas fa-triangle-exclamation"></i>
+                            <h3 id="lowStock">--</h3>
+                            <p>Low Stock Alerts (Click to view)</p>
+                        </div>
+                        <div class="stat-card" onclick="showStatDetailModal('expiry')" title="Click to view expiring batches">
+                            <i class="fas fa-calendar-xmark"></i>
+                            <h3 id="nearExpiry">--</h3>
+                            <p>Near Expiry Items (Click to view)</p>
+                        </div>
+                        <div class="stat-card" onclick="showStatDetailModal('todaysales')" title="Click to view today's transactions breakdown">
+                            <i class="fas fa-indian-rupee-sign"></i>
+                            <h3 id="todaySales">₹0</h3>
+                            <p>Today's Total Sales (Click to view)</p>
+                        </div>
+                    </div>
+
+                    <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.25rem; margin-bottom: 1.2rem; color: var(--text-muted); font-weight: 600;">
+                        Quick Workflows & Modules
+                    </h2>
+
+                    <div class="dashboard-grid">
+                        <div class="dashboard-card role-staff-only" onclick="showPage('inventory')">
+                            <i class="fas fa-boxes-stacked"></i>
+                            <h3>Inventory Management</h3>
+                            <p>Monitor stock quantities, batch numbers, unit pricing, and track active drug inventory</p>
+                        </div>
+                        <div class="dashboard-card role-staff-only" onclick="showPage('add-medicine')">
+                            <i class="fas fa-plus-circle"></i>
+                            <h3>Add New Medicine</h3>
+                            <p>Register individual pharmaceutical products with batch details, pricing, and expiry dates</p>
+                        </div>
+                        <div class="dashboard-card role-staff-only" onclick="showPage('bulk-upload')">
+                            <i class="fas fa-cloud-arrow-up"></i>
+                            <h3>Bulk CSV Import</h3>
+                            <p>Import thousands of stock records instantly using structured CSV batch templates</p>
+                        </div>
+                        <div class="dashboard-card" onclick="showPage('sales')">
+                            <i class="fas fa-receipt"></i>
+                            <h3>POS & Sales Terminal</h3>
+                            <p>Process customer orders, compute dynamic totals, and auto-update stock levels</p>
+                        </div>
+                        <div class="dashboard-card role-staff-only" onclick="showPage('reports')">
+                            <i class="fas fa-chart-column"></i>
+                            <h3>Reports & Analytics</h3>
+                            <p>Generate downloadable sales performance, low stock audits, and valuation reports</p>
+                        </div>
+                        <div class="dashboard-card role-settings-only" onclick="showPage('settings')">
+                            <i class="fas fa-sliders"></i>
+                            <h3>System Settings</h3>
+                            <p>Customize store details, low stock threshold limits, currency, and data backups</p>
+                        </div>
+                    </div>
+
+                    <div class="alert warning" onclick="showStatDetailModal('lowstock')" style="cursor: pointer;">
+                        <i class="fas fa-triangle-exclamation"></i>
+                        <div>
+                            <strong>Low Stock Alert:</strong> <span id="lowStock2">--</span> medicines are running low on stock. 
+                            <a href="#" onclick="showStatDetailModal('lowstock'); event.stopPropagation();">Click here to inspect directly</a>
+                        </div>
+                    </div>
+
+                    <div class="alert error" onclick="showStatDetailModal('expiry')" style="cursor: pointer;">
+                        <i class="fas fa-calendar-xmark"></i>
+                        <div>
+                            <strong>Expiry Warning:</strong> <span id="nearExpiry2">--</span> medicines are expiring within 30 days. 
+                            <a href="#" onclick="showStatDetailModal('expiry'); event.stopPropagation();">Click here to inspect directly</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inventory Page -->
+                <div id="inventory" class="page">
+                    <h1 class="page-title"><i class="fas fa-boxes-stacked" style="color: var(--primary);"></i> Inventory Management</h1>
+
+                    <div class="search-filter">
+                        <div class="search-box">
+                            <i class="fas fa-magnifying-glass"></i>
+                            <input type="text" placeholder="Search medicine name, manufacturer, batch or ID..." id="searchInput">
+                        </div>
+                        <select id="categoryFilter">
+                            <option value="">All Categories</option>
+                            <option value="tablet">Tablets</option>
+                            <option value="syrup">Syrups</option>
+                            <option value="injection">Injections</option>
+                            <option value="ointment">Ointments</option>
+                            <option value="drops">Drops</option>
+                        </select>
+                        <button class="btn" onclick="filterInventory()">
+                            <i class="fas fa-filter"></i> Filter
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportInventory()">
+                            <i class="fas fa-file-export"></i> Export CSV
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table id="inventoryTable">
+                            <thead>
+                                <tr>
+                                    <th>Medicine ID</th>
+                                    <th>Medicine Name</th>
+                                    <th>Category</th>
+                                    <th>Stock</th>
+                                    <th>Price</th>
+                                    <th>Expiry Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Populated dynamically via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Add Medicine Page -->
+                <div id="add-medicine" class="page">
+                    <h1 class="page-title"><i class="fas fa-plus-circle" style="color: var(--primary);"></i> Add New Medicine</h1>
+
+                    <div class="form-container">
+                        <form id="addMedicineForm">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.2rem;">
+                                <div class="form-group">
+                                    <label for="medicineName">Medicine Name *</label>
+                                    <input type="text" id="medicineName" placeholder="e.g. Paracetamol Extra" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="medicineCategory">Category *</label>
+                                    <select id="medicineCategory" required>
+                                        <option value="">Select Category</option>
+                                        <option value="tablet">Tablet</option>
+                                        <option value="syrup">Syrup</option>
+                                        <option value="injection">Injection</option>
+                                        <option value="ointment">Ointment</option>
+                                        <option value="drops">Drops</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="medicineStrength">Strength / Dosage</label>
+                                    <input type="text" id="medicineStrength" placeholder="e.g., 500mg, 5ml">
+                                </div>
+                                <div class="form-group">
+                                    <label for="medicineManufacturer">Manufacturer</label>
+                                    <input type="text" id="medicineManufacturer" placeholder="e.g. Cipla Ltd">
+                                </div>
+                                <div class="form-group">
+                                    <label for="medicineBatch">Batch Number</label>
+                                    <input type="text" id="medicineBatch" placeholder="e.g. B-2026-X">
+                                </div>
+                                <div class="form-group">
+                                    <label for="medicineQuantity">Quantity in Stock *</label>
+                                    <input type="number" id="medicineQuantity" required min="0" placeholder="100">
+                                </div>
+                                <div class="form-group">
+                                    <label for="medicinePrice">Unit Price (₹) *</label>
+                                    <input type="number" id="medicinePrice" step="0.01" required min="0" placeholder="15.50">
+                                </div>
+                                <div class="form-group">
+                                    <label for="medicineMRP">MRP (₹)</label>
+                                    <input type="number" id="medicineMRP" step="0.01" min="0" placeholder="25.00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="medicineExpiry">Expiry Date *</label>
+                                    <input type="date" id="medicineExpiry" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="medicineDescription">Description / Usage Notes</label>
+                                <textarea id="medicineDescription" rows="3" placeholder="Provide additional medical or dosage guidance..."></textarea>
+                            </div>
+                            <button type="submit" class="btn" style="margin-top: 0.5rem;">
+                                <i class="fas fa-save"></i> Save Product
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Bulk Upload Page -->
+                <div id="bulk-upload" class="page">
+                    <h1 class="page-title"><i class="fas fa-cloud-arrow-up" style="color: var(--primary);"></i> Bulk CSV Upload</h1>
+
+                    <div class="form-container">
+                        <div class="file-upload" onclick="document.getElementById('fileInput').click()">
+                            <i class="fas fa-file-excel"></i>
+                            <h3>Upload CSV Batch File</h3>
+                            <p>Click to browse or drag and drop your spreadsheet here</p>
+                            <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleFileUpload()">
+                        </div>
+
+                        <div style="margin: 2rem 0;">
+                            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem;">CSV Formatting Guidelines</h3>
+                            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+                                Ensure your CSV table headers match the following column order:
+                            </p>
+                            <div style="background: var(--input-bg); padding: 1rem 1.25rem; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 1.25rem;">
+                                <code style="color: var(--primary); font-family: monospace; font-size: 0.9rem;">name,category,strength,manufacturer,batch,quantity,price,mrp,expiry_date,description</code>
+                            </div>
+                            <button class="btn btn-secondary" onclick="downloadTemplate()">
+                                <i class="fas fa-file-arrow-down"></i> Download CSV Template
+                            </button>
+                        </div>
+
+                        <div id="uploadProgress" style="display: none;">
+                            <h4 style="margin-bottom: 0.5rem; font-size: 0.95rem;">Uploading Batch Data...</h4>
+                            <div style="background: rgba(255,255,255,0.1); border-radius: 9999px; overflow: hidden; margin-bottom: 0.5rem; height: 10px;">
+                                <div id="progressBar" style="background: var(--primary-gradient); height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+                            </div>
+                            <p id="progressText" style="font-size: 0.85rem; color: var(--text-muted);">0% Complete</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sales POS Page -->
+                <div id="sales" class="page">
+                    <h1 class="page-title"><i class="fas fa-receipt" style="color: var(--primary);"></i> Sales & Billing Terminal</h1>
+
+                    <div class="stats-grid">
+                        <div class="stat-card" onclick="showStatDetailModal('todaysales')" style="cursor: pointer;">
+                            <i class="fas fa-indian-rupee-sign"></i>
+                            <h3 id="todaySales2">₹0</h3>
+                            <p>Today's Total Revenue</p>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-cart-shopping"></i>
+                            <h3 id="todayTransactionsCount">--</h3>
+                            <p>Transactions Today</p>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-chart-line"></i>
+                            <h3 id="monthlySalesTotal">--</h3>
+                            <p>Monthly Aggregate</p>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-user-check"></i>
+                            <h3 id="customersCount">--</h3>
+                            <p>Served Customers</p>
+                        </div>
+                    </div>
+
+                    <div class="form-container">
+                        <h3>Create New Sales Invoice</h3>
+                        <form id="salesForm">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.2rem; margin-bottom: 1.5rem;">
+                                <div class="form-group">
+                                    <label for="customerName">Customer Name</label>
+                                    <input type="text" id="customerName" placeholder="e.g. Ramesh Kumar">
+                                </div>
+                                <div class="form-group">
+                                    <label for="customerPhone">Phone Number</label>
+                                    <input type="tel" id="customerPhone" placeholder="+91 9876543210">
+                                </div>
+                                <div class="form-group">
+                                    <label for="saleDate">Transaction Date</label>
+                                    <input type="date" id="saleDate">
+                                </div>
+                                <div class="form-group">
+                                    <label for="paymentMethodSelect">Payment Method *</label>
+                                    <select id="paymentMethodSelect" required>
+                                        <option value="Cash" selected>Cash Payment</option>
+                                        <option value="UPI">UPI / QR Code</option>
+                                        <option value="Card">Credit / Debit Card</option>
+                                        <option value="NetBanking">Net Banking</option>
+                                        <option value="Credit">Store Credit Account</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="transactionRefInput">Txn Ref / Auth Code</label>
+                                    <input type="text" id="transactionRefInput" placeholder="e.g. UPI-98472910">
+                                </div>
+                            </div>
+
+                            <div id="saleItems" style="margin-bottom: 1.5rem;">
+                                <div class="form-group">
+                                    <label>Select Medicine & Order Quantity</label>
+                                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                                        <select style="flex: 2; min-width: 220px;" class="sale-medicine">
+                                            <option value="">Select Medicine</option>
+                                        </select>
+                                        <input type="number" placeholder="Qty" style="flex: 1; min-width: 100px;" min="1" value="1" class="sale-quantity">
+                                        <button type="button" class="btn btn-secondary" onclick="addSaleItem()">
+                                            <i class="fas fa-plus"></i> Add Line Item
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn">
+                                <i class="fas fa-print"></i> Process Sale & Print Invoice
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="table-container">
+                        <h3>Recent Completed Sales</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Invoice ID</th>
+                                    <th>Date</th>
+                                    <th>Customer</th>
+                                    <th>Payment Method</th>
+                                    <th>Items</th>
+                                    <th>Total Amount</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="salesHistoryBody">
+                                <!-- Filled by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Reports Page -->
+                <div id="reports" class="page">
+                    <h1 class="page-title"><i class="fas fa-chart-column" style="color: var(--primary);"></i> Analytics & Business Reports</h1>
+
+                    <div class="dashboard-grid">
+                        <div class="dashboard-card" onclick="generateReport('inventory')">
+                            <i class="fas fa-boxes-stacked"></i>
+                            <h3>Inventory Audit</h3>
+                            <p>Complete valuation and stock summary</p>
+                        </div>
+                        <div class="dashboard-card" onclick="generateReport('sales')">
+                            <i class="fas fa-chart-line"></i>
+                            <h3>Sales Revenue</h3>
+                            <p>Daily and monthly sales performance analytics</p>
+                        </div>
+                        <div class="dashboard-card" onclick="generateReport('expiry')">
+                            <i class="fas fa-calendar-xmark"></i>
+                            <h3>Expiry Audit</h3>
+                            <p>List of drugs nearing expiry date thresholds</p>
+                        </div>
+                        <div class="dashboard-card" onclick="generateReport('lowstock')">
+                            <i class="fas fa-triangle-exclamation"></i>
+                            <h3>Restock Audit</h3>
+                            <p>Items requiring immediate reordering</p>
+                        </div>
+                    </div>
+
+                    <div class="form-container">
+                        <h3>Generate Custom Filtered Report</h3>
+                        <form id="reportForm">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.2rem;">
+                                <div class="form-group">
+                                    <label for="reportType">Report Type</label>
+                                    <select id="reportType">
+                                        <option value="inventory">Inventory Audit</option>
+                                        <option value="sales">Sales Performance</option>
+                                        <option value="expiry">Expiry Forecast</option>
+                                        <option value="lowstock">Low Stock Summary</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="reportDateFrom">Start Date</label>
+                                    <input type="date" id="reportDateFrom">
+                                </div>
+                                <div class="form-group">
+                                    <label for="reportDateTo">End Date</label>
+                                    <input type="date" id="reportDateTo">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn" style="margin-top: 0.5rem;">
+                                <i class="fas fa-file-pdf"></i> Generate PDF Report
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Settings Page -->
+                <div id="settings" class="page">
+                    <h1 class="page-title"><i class="fas fa-sliders" style="color: var(--primary);"></i> Settings & Customization</h1>
+
+                    <!-- Theme Customization -->
+                    <div class="settings-section">
+                        <h3>Appearance & Color Theme</h3>
+                        <div class="form-container">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.2rem;">
+                                <div class="form-group">
+                                    <label for="themeSelect">Theme Mode</label>
+                                    <select id="themeSelect" onchange="setTheme(this.value)">
+                                        <option value="dark">Dark Theme (Deep Space Navy)</option>
+                                        <option value="light">Light Theme (Clean Crisp White)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Business Settings Section -->
+                    <div id="business-settings" class="settings-section">
+                        <h3>Store & Business Profile</h3>
+                        <div class="form-container">
+                            <form id="businessForm">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.2rem;">
+                                    <div class="form-group">
+                                        <label for="businessName">Pharmacy Name</label>
+                                        <input type="text" id="businessName" value="MediVault">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="businessPhone">Phone Number</label>
+                                        <input type="tel" id="businessPhone" value="+91 9876543210">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="businessEmail">Email Address</label>
+                                        <input type="email" id="businessEmail" value="info@medivault.com">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="gstNumber">GST Number</label>
+                                        <input type="text" id="gstNumber" value="29ABCDE1234F1Z5">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="licenseNumber">Drug License Number</label>
+                                        <input type="text" id="licenseNumber" value="DL-KA-2023-12345">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="businessAddress">Store Address</label>
+                                    <textarea id="businessAddress" rows="2">123 Medical Street, Health City</textarea>
+                                </div>
+                                <button type="submit" class="btn">
+                                    <i class="fas fa-floppy-disk"></i> Save Business Settings
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- System Settings Section -->
+                    <div id="system-settings" class="settings-section">
+                        <h3>Thresholds & Configurations</h3>
+                        <div class="form-container">
+                            <form id="systemForm">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.2rem;">
+                                    <div class="form-group">
+                                        <label for="lowStockThreshold">Low Stock Warning Limit</label>
+                                        <input type="number" id="lowStockThreshold" value="10" min="1">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="expiryAlertDays">Expiry Warning Days</label>
+                                        <input type="number" id="expiryAlertDays" value="30" min="1">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="currency">Currency Unit</label>
+                                        <select id="currency">
+                                            <option value="INR" selected>Indian Rupee (₹)</option>
+                                            <option value="USD">US Dollar ($)</option>
+                                            <option value="EUR">Euro (€)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="dateFormat">Display Date Format</label>
+                                        <select id="dateFormat">
+                                            <option value="DD/MM/YYYY" selected>DD/MM/YYYY</option>
+                                            <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                                            <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn">
+                                    <i class="fas fa-floppy-disk"></i> Save Preferences
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Data Backup & Maintenance (Admin Only) -->
+                        <div class="form-container role-admin-only" style="margin-top: 2rem;">
+                            <h3><i class="fas fa-database" style="color: var(--primary);"></i> System Data Backup & Recovery</h3>
+                            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+                                Export a JSON snapshot of all system inventory, sales, audit logs, and settings records, or restore factory database defaults.
+                            </p>
+
+                            <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;">
+                                <button type="button" class="btn" onclick="exportSystemBackup()">
+                                    <i class="fas fa-download"></i> Export JSON Backup
+                                </button>
+
+                                <input type="file" id="restoreFileInput" accept=".json" style="display: none;" onchange="handleRestoreFile(this)">
+                                <button type="button" class="btn btn-secondary" onclick="triggerRestoreBackup()">
+                                    <i class="fas fa-upload"></i> Restore JSON Backup
+                                </button>
+
+                                <button type="button" class="btn" onclick="confirmResetDatabase()" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);">
+                                    <i class="fas fa-rotate-left"></i> Reset System Database
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Management Page (Admin Only) -->
+                <div id="users-page" class="page">
+                    <h1 class="page-title"><i class="fas fa-users-gear" style="color: var(--primary);"></i> Staff User Accounts</h1>
+
+                    <div class="form-container">
+                        <h3>Create New Staff Account</h3>
+                        <form id="createUserForm" onsubmit="handleCreateUserSubmit(event)">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.2rem;">
+                                <div class="form-group">
+                                    <label for="newUserName">Full Name *</label>
+                                    <input type="text" id="newUserName" required placeholder="e.g. Dr. Sarah Jenkins">
+                                </div>
+                                <div class="form-group">
+                                    <label for="newUserEmail">Email Address *</label>
+                                    <input type="email" id="newUserEmail" required placeholder="sarah@medivault.com">
+                                </div>
+                                <div class="form-group">
+                                    <label for="newUserPassword">Password *</label>
+                                    <input type="password" id="newUserPassword" required placeholder="••••••••">
+                                </div>
+                                <div class="form-group">
+                                    <label for="newUserRole">Team Role *</label>
+                                    <select id="newUserRole" required>
+                                        <option value="Pharmacist" selected>Pharmacist</option>
+                                        <option value="Cashier">Cashier</option>
+                                        <option value="Admin">System Admin</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn">
+                                <i class="fas fa-user-plus"></i> Register Staff Account
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="table-container">
+                        <h3>Active Staff Accounts</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>User ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Joined Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <!-- JS Populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Audit Logs Page (Admin Only) -->
+                <div id="audit-page" class="page">
+                    <h1 class="page-title"><i class="fas fa-shield-halved" style="color: var(--primary);"></i> Security Audit Trail Logs</h1>
+
+                    <div class="table-container">
+                        <h3>Realtime System Action History</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Log ID</th>
+                                    <th>User</th>
+                                    <th>Action</th>
+                                    <th>Details</th>
+                                    <th>Timestamp</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditLogsBody">
+                                <!-- JS Populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Auth / Portal Access Modal -->
+    <div id="authModal" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fas fa-shield-heart" style="color: var(--primary);"></i> Portal Authentication</h3>
+                <button class="modal-close" onclick="closeAuthModal()"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); padding: 0.85rem; border-radius: 12px; margin-bottom: 1.25rem;">
+                    <p style="font-size: 0.8rem; font-weight: 600; color: var(--primary); margin-bottom: 0.4rem;">Quick Demo Login Buttons:</p>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="btn btn-sm" onclick="quickDemoLogin('admin')"><i class="fas fa-user-gear"></i> Admin</button>
+                        <button class="btn btn-sm btn-secondary" onclick="quickDemoLogin('pharmacist')"><i class="fas fa-user-nurse"></i> Pharmacist</button>
+                        <button class="btn btn-sm btn-secondary" onclick="quickDemoLogin('cashier')"><i class="fas fa-cash-register"></i> Cashier</button>
+                    </div>
+                </div>
+
+                <form id="authForm" onsubmit="handleLoginSubmit(event)">
+                    <div class="form-group">
+                        <label for="loginEmail">Email Address</label>
+                        <input type="email" id="loginEmail" required placeholder="admin@medivault.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" required placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="btn" style="width: 100%; margin-top: 0.5rem;">
+                        <i class="fas fa-right-to-bracket"></i> Sign In to MediVault
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Direct Stat Card Detail Pop-up Modal -->
+    <div id="statDetailModal" class="modal-overlay" style="display: none;">
+        <div class="modal-card modal-lg">
+            <div class="modal-header">
+                <h3 id="statModalTitle"><i class="fas fa-list-check" style="color: var(--primary);"></i> Detailed Results</h3>
+                <button class="modal-close" onclick="closeStatDetailModal()"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-container" style="max-height: 60vh; overflow-y: auto; margin-top: 0;">
+                    <table id="statDetailTable">
+                        <thead id="statDetailHead">
+                            <!-- JS populated -->
+                        </thead>
+                        <tbody id="statDetailBody">
+                            <!-- JS populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const year = new Date().getFullYear();
+            const month = String(new Date().getMonth() + 1).padStart(2, '0');
+            const day = String(new Date().getDate()).padStart(2, '0');
+            const today = `${year}-${month}-${day}`;
+            const saleDate = document.getElementById('saleDate');
+            if (saleDate) saleDate.value = today;
+
+            const savedTheme = localStorage.getItem('medivault_theme') || 'dark';
+            setTheme(savedTheme);
+        });
+    </script>
+</body>
+</html>

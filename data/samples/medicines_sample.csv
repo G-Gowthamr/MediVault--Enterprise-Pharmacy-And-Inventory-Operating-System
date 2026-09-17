@@ -1,0 +1,11 @@
+id,name,category,strength,manufacturer,batch,quantity,price,mrp,expiry,description
+MED001,Paracetamol,Analgesic,500mg,Cipla,B001,120,12.5,20,2026-03-15,Used for fever and pain relief
+MED002,Amoxicillin,Antibiotic,250mg,Sun Pharma,B002,80,25,40,2025-11-20,Broad-spectrum antibiotic
+MED003,Azithromycin,Antibiotic,500mg,Dr Reddy's,B003,60,45,70,2026-01-10,Used for bacterial infections
+MED004,Ibuprofen,Analgesic,400mg,GSK,B004,150,10,18,2026-05-25,Used for inflammation and pain
+MED005,Omeprazole,Antacid,20mg,Intas,B005,200,8,15,2027-07-01,Reduces stomach acid
+MED006,Metformin,Antidiabetic,500mg,Torrent,B006,180,6,10,2026-09-12,Used to control blood sugar levels
+MED007,Cetirizine,Antihistamine,10mg,Alkem,B007,100,3,6,2028-02-28,Used for allergies and sneezing
+MED008,Losartan,Antihypertensive,50mg,Zydus,B008,75,20,30,2026-06-30,Used for high blood pressure
+MED009,Atorvastatin,Statin,10mg,Lupin,B009,130,18,28,2027-03-22,Lowers cholesterol
+MED010,Vitamin C,Supplement,500mg,Abbott,B010,250,5,9,2029-12-31,Boosts immunity and skin health
