@@ -1420,7 +1420,8 @@ function generateInvoiceWindow(sale) {
          <strong>Date:</strong> ${escapeHtml(sale.date)}<br/>
          <strong>Customer Name:</strong> ${escapeHtml(sale.customer_name || sale.customerName || 'Walk-in Customer')}<br/>
          ${(sale.customer_phone || sale.customerPhone) ? `<strong>Phone Number:</strong> ${escapeHtml(sale.customer_phone || sale.customerPhone)}<br/>` : ''}
-         <strong>Payment Method:</strong> ${escapeHtml(sale.payment_method || sale.paymentMethod || 'Cash')}
+         <strong>Payment Method:</strong> ${escapeHtml(sale.payment_method || sale.paymentMethod || 'Cash')} ${sale.transaction_ref ? `(Ref: ${escapeHtml(sale.transaction_ref)})` : ''}<br/>
+         <strong>Payment Status:</strong> <span style="color:#10b981; font-weight:600;">Completed ✓</span>
       </p>
       <table>
         <thead><tr><th>Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Unit</th><th style="text-align:right">Subtotal</th></tr></thead>
@@ -1428,16 +1429,13 @@ function generateInvoiceWindow(sale) {
           ${itemsRows}
         </tbody>
         <tfoot>
-          <tr><td colspan="3" class="right"><strong>Total</strong></td><td style="text-align:right"><strong>₹${total}</strong></td></tr>
+          <tr><td colspan="3" class="right"><strong>Total Amount Owed / Paid</strong></td><td style="text-align:right"><strong>₹${total}</strong></td></tr>
         </tfoot>
       </table>
-      <p style="margin-top:20px; font-weight:600; color:#1e293b;">Thank you for your purchase.</p>
-      <div style="margin-top:20px; padding:12px; border:1px solid #cbd5e1; background:#f8fafc; font-size:12px; border-radius:6px; color:#334155;">
-        <strong style="color:#2563eb; font-size:13px; display:block; margin-bottom:4px;">Official Store Merchant Bank & Payment Details:</strong>
-        <strong>Beneficiary Name:</strong> ${escapeHtml(ownerPaymentConfig.accountName || companyName)}<br/>
-        <strong>Primary Bank:</strong> ${escapeHtml(ownerPaymentConfig.bankName || 'ICICI Bank Ltd.')} | <strong>A/C No:</strong> ${escapeHtml(ownerPaymentConfig.accountNumber || '91802345678912')}<br/>
-        <strong>IFSC Code:</strong> ${escapeHtml(ownerPaymentConfig.ifscCode || 'ICIC0001024')} | <strong>UPI VPA:</strong> ${escapeHtml(ownerPaymentConfig.upiId || 'medivault.owner@icici')}<br/>
-        <strong>GSTIN:</strong> ${escapeHtml(ownerPaymentConfig.gstin || '33AAAAA0000A1Z5')} | <strong>Ref:</strong> ${escapeHtml(sale.transaction_ref || 'N/A')}
+      <div style="margin-top:25px; border-top:1px dashed #cbd5e1; padding-top:15px; font-size:12px; color:#64748b; text-align:center;">
+        <p style="font-weight:600; color:#1e293b; margin:0 0 4px 0;">Thank you for your purchase!</p>
+        <span>GSTIN: ${escapeHtml(businessSettings.gstNumber || ownerPaymentConfig.gstin || '29ABCDE1234F1Z5')} | Drug Lic: ${escapeHtml(businessSettings.licenseNumber || 'DL-KA-2023-12345')}</span><br/>
+        <span style="font-size:11px; color:#94a3b8; display:block; margin-top:4px;">This is a computer-generated tax invoice. No signature required.</span>
       </div>
     </body>
   </html>`;
