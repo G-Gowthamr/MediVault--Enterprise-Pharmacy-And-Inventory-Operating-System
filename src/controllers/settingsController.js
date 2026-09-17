@@ -29,6 +29,14 @@ exports.saveSettings = (req, res) => {
     const tx = db.transaction((obj) => {
       for (const [key, val] of Object.entries(obj)) {
         upsert.run({ key, value: typeof val === 'object' ? JSON.stringify(val) : String(val) });
+        if (key === 'owner_payment_config') {
+          const userName = req.user ? req.user.name : 'System Admin';
+          const userId = req.user ? req.user.id : 'USR-001';
+          db.prepare(`
+            INSERT INTO audit_logs (user_id, user_name, action, details, created_at)
+            VALUES (?, ?, ?, ?, ?)
+          `).run(userId, userName, 'UPDATE_MERCHANT_BANK_CONFIG', 'Updated owner bank account credentials & UPI payment gateway configuration', new Date().toISOString());
+        }
       }
     });
     tx(settings);

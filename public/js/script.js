@@ -23,6 +23,18 @@ let systemSettings = {
   autoBackup: true
 };
 
+let ownerPaymentConfig = {
+  accountName: 'MediVault Pharmacy & Healthcare Ltd.',
+  bankName: 'ICICI Bank Ltd.',
+  accountNumber: '91802345678912',
+  ifscCode: 'ICIC0001024',
+  branchName: 'Health City Main Branch, MG Road',
+  upiId: 'medivault.owner@icici',
+  merchantPhone: '+91 9876543210',
+  merchantEmail: 'owner.payments@medivault.com',
+  gstin: '33AAAAA0000A1Z5'
+};
+
 function getLocalDateString(d = new Date()) {
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -1419,7 +1431,14 @@ function generateInvoiceWindow(sale) {
           <tr><td colspan="3" class="right"><strong>Total</strong></td><td style="text-align:right"><strong>₹${total}</strong></td></tr>
         </tfoot>
       </table>
-      <p style="margin-top:20px">Thank you for your purchase.</p>
+      <p style="margin-top:20px; font-weight:600; color:#1e293b;">Thank you for your purchase.</p>
+      <div style="margin-top:20px; padding:12px; border:1px solid #cbd5e1; background:#f8fafc; font-size:12px; border-radius:6px; color:#334155;">
+        <strong style="color:#2563eb; font-size:13px; display:block; margin-bottom:4px;">Official Store Merchant Bank & Payment Details:</strong>
+        <strong>Beneficiary Name:</strong> ${escapeHtml(ownerPaymentConfig.accountName || companyName)}<br/>
+        <strong>Primary Bank:</strong> ${escapeHtml(ownerPaymentConfig.bankName || 'ICICI Bank Ltd.')} | <strong>A/C No:</strong> ${escapeHtml(ownerPaymentConfig.accountNumber || '91802345678912')}<br/>
+        <strong>IFSC Code:</strong> ${escapeHtml(ownerPaymentConfig.ifscCode || 'ICIC0001024')} | <strong>UPI VPA:</strong> ${escapeHtml(ownerPaymentConfig.upiId || 'medivault.owner@icici')}<br/>
+        <strong>GSTIN:</strong> ${escapeHtml(ownerPaymentConfig.gstin || '33AAAAA0000A1Z5')} | <strong>Ref:</strong> ${escapeHtml(sale.transaction_ref || 'N/A')}
+      </div>
     </body>
   </html>`;
 
@@ -1647,10 +1666,16 @@ function openPOSPaymentModal() {
   const method = currentPendingSalePayload.paymentMethod;
 
   if (method === 'UPI') {
+    const payeeNameEl = document.getElementById('upiPayeeNameDisplay');
+    const vpaEl = document.getElementById('upiVpaDisplay');
     const qrImg = document.getElementById('upiQRCodeImg');
+
+    if (payeeNameEl) payeeNameEl.textContent = ownerPaymentConfig.accountName || 'MediVault Pharmacy Ltd.';
+    if (vpaEl) vpaEl.textContent = ownerPaymentConfig.upiId || 'medivault.owner@icici';
+
     if (qrImg) {
-      const upiUrl = `upi://pay?pa=medivault@upi&pn=MediVault+Healthcare&am=${currentPendingSalePayload.total.toFixed(2)}&cu=INR`;
-      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`;
+      const upiUrl = `upi://pay?pa=${encodeURIComponent(ownerPaymentConfig.upiId || 'medivault.owner@icici')}&pn=${encodeURIComponent(ownerPaymentConfig.accountName || 'MediVault Pharmacy')}&am=${currentPendingSalePayload.total.toFixed(2)}&cu=INR`;
+      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiUrl)}`;
     }
     const panel = document.getElementById('payPanelUPI');
     if (panel) panel.style.display = 'block';
@@ -1663,6 +1688,16 @@ function openPOSPaymentModal() {
     const panel = document.getElementById('payPanelCard');
     if (panel) panel.style.display = 'block';
   } else if (method === 'NetBanking') {
+    const nbName = document.getElementById('nbBeneficiaryName');
+    const nbBank = document.getElementById('nbBankName');
+    const nbAcc = document.getElementById('nbAccountNumber');
+    const nbIfsc = document.getElementById('nbIfscCode');
+
+    if (nbName) nbName.textContent = ownerPaymentConfig.accountName || 'MediVault Pharmacy Ltd.';
+    if (nbBank) nbBank.textContent = ownerPaymentConfig.bankName || 'ICICI Bank Ltd.';
+    if (nbAcc) nbAcc.textContent = ownerPaymentConfig.accountNumber || '91802345678912';
+    if (nbIfsc) nbIfsc.textContent = ownerPaymentConfig.ifscCode || 'ICIC0001024';
+
     const panel = document.getElementById('payPanelNetBanking');
     if (panel) panel.style.display = 'block';
   } else if (method === 'Credit') {
@@ -1924,6 +1959,10 @@ function fetchAndApplySettings() {
       if (data && typeof data === 'object') {
         if (data.business) businessSettings = Object.assign(businessSettings, data.business);
         if (data.system) systemSettings = Object.assign(systemSettings, data.system);
+        if (data.owner_payment_config) {
+          const cfg = typeof data.owner_payment_config === 'string' ? JSON.parse(data.owner_payment_config) : data.owner_payment_config;
+          ownerPaymentConfig = Object.assign(ownerPaymentConfig, cfg);
+        }
       }
       applySettingsToUI();
     })
@@ -1934,6 +1973,8 @@ function fetchAndApplySettings() {
         if (localB) businessSettings = Object.assign(businessSettings, JSON.parse(localB));
         const localS = localStorage.getItem('medivault_system_settings') || localStorage.getItem('ramesh_system_settings');
         if (localS) systemSettings = Object.assign(systemSettings, JSON.parse(localS));
+        const localO = localStorage.getItem('medivault_owner_payment_config');
+        if (localO) ownerPaymentConfig = Object.assign(ownerPaymentConfig, JSON.parse(localO));
       } catch (e) {}
       applySettingsToUI();
     });
@@ -1951,6 +1992,16 @@ function applySettingsToUI() {
   if (document.getElementById('expiryAlertDays')) document.getElementById('expiryAlertDays').value = systemSettings.expiryAlertDays || 30;
   if (document.getElementById('currency')) document.getElementById('currency').value = systemSettings.currency || 'INR';
   if (document.getElementById('dateFormat')) document.getElementById('dateFormat').value = systemSettings.dateFormat || 'DD/MM/YYYY';
+
+  if (document.getElementById('ownerAccountName')) document.getElementById('ownerAccountName').value = ownerPaymentConfig.accountName || '';
+  if (document.getElementById('ownerBankName')) document.getElementById('ownerBankName').value = ownerPaymentConfig.bankName || '';
+  if (document.getElementById('ownerAccountNumber')) document.getElementById('ownerAccountNumber').value = ownerPaymentConfig.accountNumber || '';
+  if (document.getElementById('ownerIfscCode')) document.getElementById('ownerIfscCode').value = ownerPaymentConfig.ifscCode || '';
+  if (document.getElementById('ownerBranchName')) document.getElementById('ownerBranchName').value = ownerPaymentConfig.branchName || '';
+  if (document.getElementById('ownerUpiId')) document.getElementById('ownerUpiId').value = ownerPaymentConfig.upiId || '';
+  if (document.getElementById('ownerMerchantPhone')) document.getElementById('ownerMerchantPhone').value = ownerPaymentConfig.merchantPhone || '';
+  if (document.getElementById('ownerMerchantEmail')) document.getElementById('ownerMerchantEmail').value = ownerPaymentConfig.merchantEmail || '';
+  if (document.getElementById('ownerGstin')) document.getElementById('ownerGstin').value = ownerPaymentConfig.gstin || '';
 
   const logoEl = document.querySelector('.logo');
   if (logoEl && businessSettings.businessName) {
@@ -2027,6 +2078,47 @@ function saveSystemSettings(e) {
     });
 }
 
+function saveOwnerPaymentConfig(e) {
+  if (e) e.preventDefault();
+  ownerPaymentConfig = {
+    accountName: document.getElementById('ownerAccountName')?.value || 'MediVault Pharmacy & Healthcare Ltd.',
+    bankName: document.getElementById('ownerBankName')?.value || 'ICICI Bank Ltd.',
+    accountNumber: document.getElementById('ownerAccountNumber')?.value || '',
+    ifscCode: (document.getElementById('ownerIfscCode')?.value || '').toUpperCase(),
+    branchName: document.getElementById('ownerBranchName')?.value || '',
+    upiId: document.getElementById('ownerUpiId')?.value || '',
+    merchantPhone: document.getElementById('ownerMerchantPhone')?.value || '',
+    merchantEmail: document.getElementById('ownerMerchantEmail')?.value || '',
+    gstin: (document.getElementById('ownerGstin')?.value || '').toUpperCase()
+  };
+
+  try {
+    localStorage.setItem('medivault_owner_payment_config', JSON.stringify(ownerPaymentConfig));
+  } catch (err) {}
+
+  const authHeaders = typeof getAuthHeaders === 'function' ? getAuthHeaders() : {};
+
+  fetch('/api/settings', {
+    method: 'POST',
+    headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders),
+    body: JSON.stringify({ owner_payment_config: ownerPaymentConfig })
+  })
+    .then(res => res.json())
+    .then(resp => {
+      if (resp && resp.ok) {
+        showAlert('Owner Merchant Bank Credentials saved successfully!', 'success');
+        applySettingsToUI();
+      } else {
+        showAlert('Failed to save bank credentials: ' + (resp.error || 'Unauthorized'), 'error');
+      }
+    })
+    .catch(err => {
+      console.error('Save owner bank config error:', err);
+      showAlert('Bank credentials saved locally.', 'warning');
+      applySettingsToUI();
+    });
+}
+
 // Init
 document.addEventListener('DOMContentLoaded', function () {
   const fileInput = document.getElementById('fileInput');
@@ -2040,6 +2132,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const systemForm = document.getElementById('systemForm');
   if (systemForm) systemForm.addEventListener('submit', saveSystemSettings);
+
+  const ownerBankForm = document.getElementById('ownerBankForm');
+  if (ownerBankForm) ownerBankForm.addEventListener('submit', saveOwnerPaymentConfig);
 
   const reportForm = document.getElementById('reportForm');
   if (reportForm) {

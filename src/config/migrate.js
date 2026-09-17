@@ -155,6 +155,24 @@ function runMigrations() {
     console.log('[migration] Seeded default accounts: admin@medivault.com, pharmacist@medivault.com, cashier@medivault.com');
   }
 
+  // Seed Default Owner Payment Gateway Config if Empty
+  const ownerConfig = db.prepare('SELECT value FROM settings WHERE key = ?').get('owner_payment_config');
+  if (!ownerConfig) {
+    console.log('[migration] Seeding default owner merchant bank & payment gateway credentials...');
+    const defaultConfig = {
+      accountName: 'MediVault Pharmacy & Healthcare Ltd.',
+      bankName: 'ICICI Bank Ltd.',
+      accountNumber: '91802345678912',
+      ifscCode: 'ICIC0001024',
+      branchName: 'Health City Main Branch, MG Road',
+      upiId: 'medivault.owner@icici',
+      merchantPhone: '+91 9876543210',
+      merchantEmail: 'owner.payments@medivault.com',
+      gstin: '33AAAAA0000A1Z5'
+    };
+    db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('owner_payment_config', JSON.stringify(defaultConfig));
+  }
+
   console.log('[migration] Database migrations complete.');
 }
 

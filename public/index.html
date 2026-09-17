@@ -629,6 +629,59 @@
                         </div>
                     </div>
 
+                    <!-- Owner Merchant Bank Account & Gateway Settings (Admin Only) -->
+                    <div id="owner-bank-settings" class="settings-section role-admin-only">
+                        <h3><i class="fas fa-building-columns" style="color: var(--primary);"></i> Owner Merchant Bank Account & Payment Gateway Config</h3>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.2rem;">
+                            Configure the Medical Store Owner's official merchant bank account details, UPI ID/VPA, and payment gateway beneficiary information. All POS terminal customer payments (UPI QR, NetBanking, Card debits) will route directly to this account.
+                        </p>
+                        <div class="form-container">
+                            <form id="ownerBankForm" onsubmit="saveOwnerPaymentConfig(event)">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.2rem; margin-bottom: 1.2rem;">
+                                    <div class="form-group">
+                                        <label for="ownerAccountName">Beneficiary / Account Holder Name *</label>
+                                        <input type="text" id="ownerAccountName" required placeholder="e.g. MediVault Pharmacy Ltd.">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="ownerBankName">Primary Bank Name *</label>
+                                        <input type="text" id="ownerBankName" required placeholder="e.g. ICICI Bank Ltd.">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="ownerAccountNumber">Bank Account Number *</label>
+                                        <input type="text" id="ownerAccountNumber" required placeholder="e.g. 91802345678912">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="ownerIfscCode">Bank IFSC Code *</label>
+                                        <input type="text" id="ownerIfscCode" required placeholder="e.g. ICIC0001024" style="text-transform: uppercase;">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="ownerBranchName">Branch Name & Address</label>
+                                        <input type="text" id="ownerBranchName" placeholder="e.g. Health City Main Branch, MG Road">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="ownerUpiId">Merchant UPI ID / VPA *</label>
+                                        <input type="text" id="ownerUpiId" required placeholder="e.g. medivault.owner@icici">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="ownerMerchantPhone">Merchant Support Phone</label>
+                                        <input type="tel" id="ownerMerchantPhone" placeholder="+91 9876543210">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="ownerMerchantEmail">Merchant Support Email</label>
+                                        <input type="email" id="ownerMerchantEmail" placeholder="owner.payments@medivault.com">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="ownerGstin">GSTIN Number</label>
+                                        <input type="text" id="ownerGstin" placeholder="33AAAAA0000A1Z5" style="text-transform: uppercase;">
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn">
+                                    <i class="fas fa-shield-check"></i> Save Owner Merchant Bank Credentials
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
                     <!-- System Settings Section -->
                     <div id="system-settings" class="settings-section">
                         <h3>Thresholds & Configurations</h3>
@@ -827,14 +880,19 @@
 
                 <!-- UPI / QR Code Payment Screen -->
                 <div id="payPanelUPI" class="pay-panel" style="display: none; text-align: center;">
-                    <h4 style="margin-bottom: 0.5rem;"><i class="fas fa-qrcode" style="color: #10B981;"></i> Scan & Pay via UPI / QR Code</h4>
-                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Scan using any UPI App (GPay, PhonePe, Paytm, BHIM)</p>
+                    <h4 style="margin-bottom: 0.3rem;"><i class="fas fa-qrcode" style="color: #10B981;"></i> Scan & Pay via UPI / Dynamic QR Code</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.8rem;">Scan using any UPI App (GPay, PhonePe, Paytm, BHIM, Cred)</p>
                     
-                    <div style="background: #ffffff; padding: 1rem; border-radius: 12px; display: inline-block; box-shadow: 0 4px 20px rgba(0,0,0,0.15); margin-bottom: 1rem;">
+                    <div style="background: rgba(16, 185, 129, 0.08); border: 1px dashed rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 0.6rem 1rem; display: inline-block; margin-bottom: 1rem;">
+                        <span style="font-size: 0.78rem; color: var(--text-muted); display: block;">Official Verified Merchant Payee:</span>
+                        <strong id="upiPayeeNameDisplay" style="color: var(--primary); font-size: 0.95rem;">MediVault Pharmacy Ltd.</strong>
+                    </div>
+
+                    <div style="background: #ffffff; padding: 1rem; border-radius: 12px; display: block; width: 220px; margin: 0 auto 1rem; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
                         <img id="upiQRCodeImg" src="" alt="UPI QR Code" style="width: 200px; height: 200px; display: block;">
                     </div>
-                    <div style="font-family: monospace; font-size: 1.1rem; color: var(--text-main); margin-bottom: 1rem;">
-                        VPA: <strong style="color: var(--primary);">medivault@upi</strong>
+                    <div style="font-family: monospace; font-size: 1.05rem; color: var(--text-main); margin-bottom: 1rem;">
+                        Merchant UPI VPA: <strong id="upiVpaDisplay" style="color: var(--primary);">medivault.owner@icici</strong>
                     </div>
                     <div style="display: flex; justify-content: center; gap: 0.8rem; margin-top: 1rem;">
                         <button type="button" class="btn" onclick="simulateUPIPaymentSuccess()">
@@ -887,12 +945,37 @@
                 <div id="payPanelNetBanking" class="pay-panel" style="display: none;">
                     <h4 style="margin-bottom: 1rem;"><i class="fas fa-building-columns" style="color: #8B5CF6;"></i> Select Net Banking Portal</h4>
                     
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.8rem; margin-bottom: 1.5rem;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.8rem; margin-bottom: 1.2rem;">
                         <div class="bank-pill active" onclick="selectBank(this, 'HDFC Bank')"><i class="fas fa-university"></i> HDFC Bank</div>
                         <div class="bank-pill" onclick="selectBank(this, 'State Bank of India')"><i class="fas fa-university"></i> SBI Bank</div>
                         <div class="bank-pill" onclick="selectBank(this, 'ICICI Bank')"><i class="fas fa-university"></i> ICICI Bank</div>
                         <div class="bank-pill" onclick="selectBank(this, 'Axis Bank')"><i class="fas fa-university"></i> Axis Bank</div>
                         <div class="bank-pill" onclick="selectBank(this, 'Kotak Mahindra')"><i class="fas fa-university"></i> Kotak Bank</div>
+                    </div>
+
+                    <!-- Owner Beneficiary Bank Transfer Details -->
+                    <div style="background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.25); border-radius: 12px; padding: 1rem; margin-bottom: 1.2rem;">
+                        <h5 style="color: #8b5cf6; margin: 0 0 0.6rem 0; font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem;">
+                            <i class="fas fa-building-columns"></i> Verified Medical Store Beneficiary Bank Account
+                        </h5>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.6rem; font-size: 0.85rem;">
+                            <div>
+                                <span style="color: var(--text-muted); display: block; font-size: 0.75rem;">Account Holder Name</span>
+                                <strong id="nbBeneficiaryName" style="color: var(--text-main);">MediVault Pharmacy Ltd.</strong>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted); display: block; font-size: 0.75rem;">Bank Name</span>
+                                <strong id="nbBankName" style="color: var(--text-main);">ICICI Bank Ltd.</strong>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted); display: block; font-size: 0.75rem;">Account Number</span>
+                                <strong id="nbAccountNumber" style="font-family: monospace; color: var(--primary);">91802345678912</strong>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted); display: block; font-size: 0.75rem;">IFSC Code</span>
+                                <strong id="nbIfscCode" style="font-family: monospace; color: var(--primary);">ICIC0001024</strong>
+                            </div>
+                        </div>
                     </div>
 
                     <button type="button" class="btn" style="width: 100%;" onclick="simulateNetBankingAuthorize()">
