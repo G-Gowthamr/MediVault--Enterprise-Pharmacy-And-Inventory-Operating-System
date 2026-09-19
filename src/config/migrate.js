@@ -83,7 +83,7 @@ function runMigrations() {
       sale_id TEXT,
       medicine_id TEXT,
       medicine_name TEXT,
-      qty INTEGER,
+      quantity INTEGER,
       price REAL,
       subtotal REAL,
       FOREIGN KEY(sale_id) REFERENCES sales(id)
@@ -103,6 +103,7 @@ function runMigrations() {
   try { db.prepare("ALTER TABLE sales ADD COLUMN payment_status TEXT DEFAULT 'Completed'").run(); } catch(e){}
   try { db.prepare("ALTER TABLE sales ADD COLUMN transaction_ref TEXT").run(); } catch(e){}
   try { db.prepare("ALTER TABLE sales ADD COLUMN created_by TEXT").run(); } catch(e){}
+  try { db.prepare("ALTER TABLE sale_items ADD COLUMN quantity INTEGER").run(); } catch(e){}
 
   // Seed Default User Accounts if Empty
   const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;

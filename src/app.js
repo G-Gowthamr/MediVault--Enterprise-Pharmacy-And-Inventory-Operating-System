@@ -3,7 +3,9 @@ const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 
-const { runMigrations } = require('./config/migrate');
+const { runPostgresMigrations } = require('./config/migratePostgres');
+const { checkPostgresHealth } = require('./config/postgres');
+const { checkRedisHealth } = require('./config/redis');
 const { optionalAuthMiddleware } = require('./middlewares/authMiddleware');
 
 const authRoutes = require('./routes/authRoutes');
@@ -14,8 +16,10 @@ const settingsRoutes = require('./routes/settingsRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const auditRoutes = require('./routes/auditRoutes');
 
-// Execute DB migrations & default account seeding
-runMigrations();
+// Execute DB migrations & default account seeding asynchronously
+runPostgresMigrations().catch(err => {
+  console.error('[app initialization] Migration runner error:', err.message);
+});
 
 const app = express();
 
@@ -38,8 +42,27 @@ app.use('/api/reports', reportsRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/audit-logs', auditRoutes);
 
-// Health check endpoint
-app.get('/api/health', (req, res) => res.json({ ok: true, timestamp: new Date().toISOString() }));
+// Health check endpoint with PostgreSQL & Redis status reporting
+app.get('/api/health', async (req, res) => {
+  const pgHealthy = await checkPostgresHealth();
+  const redisHealthy = await checkRedisHealth();
+
+  let overallStatus = 'ok';
+  if (!pgHealthy) {
+    overallStatus = 'error';
+  } else if (!redisHealthy) {
+    overallStatus = 'degraded';
+  }
+
+  const statusCode = pgHealthy ? 200 : 503;
+
+  return res.status(statusCode).json({
+    status: overallStatus,
+    database: pgHealthy ? 'connected' : 'disconnected',
+    redis: redisHealthy ? 'connected' : 'degraded',
+    timestamp: new Date().toISOString()
+  });
+});
 
 // Fallback - send index.html for SPA
 app.get('*', (req, res) => {

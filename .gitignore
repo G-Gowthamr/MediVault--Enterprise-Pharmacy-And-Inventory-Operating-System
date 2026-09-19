@@ -1,7 +1,11 @@
 node_modules/
 .env
+*.db
+*.sqlite
 data/*.db
 data/*.sqlite
 *.log
 .DS_Store
 Thumbs.db
+project_documentation/
+

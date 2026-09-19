@@ -1,12 +1,11 @@
 const path = require('path');
 const fs = require('fs');
-const { db, nextId } = require('../config/db');
-const { logAuditEvent } = require('./auditController');
+const medicineService = require('../services/medicineService');
 
 // GET all medicines
-exports.getAllMedicines = (req, res) => {
+exports.getAllMedicines = async (req, res) => {
   try {
-    const rows = db.prepare('SELECT * FROM medicines ORDER BY date_added DESC, id ASC').all();
+    const rows = await medicineService.getAllMedicines();
     res.json(rows);
   } catch (err) {
     console.error('GET /api/medicines failed:', err);
@@ -30,96 +29,45 @@ exports.getSampleCsv = (req, res) => {
 };
 
 // GET single medicine
-exports.getMedicineById = (req, res) => {
+exports.getMedicineById = async (req, res) => {
   try {
-    const row = db.prepare('SELECT * FROM medicines WHERE id = ?').get(req.params.id);
-    if (!row) return res.status(404).json({ error: 'Not found' });
+    const row = await medicineService.getMedicineById(req.params.id);
     res.json(row);
   } catch (err) {
-    console.error('GET /api/medicines/:id failed:', err);
-    res.status(500).json({ error: 'Failed to fetch medicine' });
+    const status = err.status || 500;
+    res.status(status).json({ error: err.message || 'Failed to fetch medicine' });
   }
 };
 
 // POST add medicine
-exports.addMedicine = (req, res) => {
-  const data = req.body || {};
-  const id = data.id || nextId('MED', 'medicines');
-
-  const stmt = db.prepare(`INSERT OR REPLACE INTO medicines (
-    id, name, category, strength, manufacturer, batch, quantity, price, mrp, expiry, description, date_added
-  ) VALUES (@id,@name,@category,@strength,@manufacturer,@batch,@quantity,@price,@mrp,@expiry,@description,@date_added)`);
-
+exports.addMedicine = async (req, res) => {
   try {
-    stmt.run({
-      id,
-      name: data.name || '',
-      category: data.category || '',
-      strength: data.strength || '',
-      manufacturer: data.manufacturer || '',
-      batch: data.batch || '',
-      quantity: Number(data.quantity || 0),
-      price: Number(data.price || 0),
-      mrp: Number(data.mrp || 0),
-      expiry: data.expiry || '',
-      description: data.description || '',
-      date_added: data.date_added || new Date().toISOString().split('T')[0]
-    });
-
-    logAuditEvent(req.user, 'ADD_MEDICINE', `Added medicine ${data.name} (ID: ${id}, Qty: ${data.quantity})`);
-
-    const added = db.prepare('SELECT * FROM medicines WHERE id = ?').get(id);
+    const added = await medicineService.addMedicine(req.user, req.body || {});
     res.status(201).json(added);
   } catch (err) {
     console.error('POST /api/medicines failed:', err);
-    res.status(500).json({ error: 'Insert failed' });
+    res.status(500).json({ error: err.message || 'Insert failed' });
   }
 };
 
 // PUT update medicine
-exports.updateMedicine = (req, res) => {
-  const id = req.params.id;
-  const data = req.body || {};
-  const stmt = db.prepare(`UPDATE medicines SET
-    name=@name, category=@category, strength=@strength, manufacturer=@manufacturer,
-    batch=@batch, quantity=@quantity, price=@price, mrp=@mrp, expiry=@expiry, description=@description
-    WHERE id=@id`);
+exports.updateMedicine = async (req, res) => {
   try {
-    stmt.run({
-      id,
-      name: data.name || '',
-      category: data.category || '',
-      strength: data.strength || '',
-      manufacturer: data.manufacturer || '',
-      batch: data.batch || '',
-      quantity: Number(data.quantity || 0),
-      price: Number(data.price || 0),
-      mrp: Number(data.mrp || 0),
-      expiry: data.expiry || '',
-      description: data.description || ''
-    });
-
-    logAuditEvent(req.user, 'UPDATE_MEDICINE', `Updated medicine ${data.name || id}`);
-
-    const updated = db.prepare('SELECT * FROM medicines WHERE id = ?').get(id);
+    const updated = await medicineService.updateMedicine(req.user, req.params.id, req.body || {});
     res.json(updated);
   } catch (err) {
-    console.error('PUT /api/medicines/:id failed:', err);
-    res.status(500).json({ error: 'Update failed' });
+    const status = err.status || 500;
+    res.status(status).json({ error: err.message || 'Update failed' });
   }
 };
 
 // DELETE medicine
-exports.deleteMedicine = (req, res) => {
-  const id = req.params.id;
+exports.deleteMedicine = async (req, res) => {
   try {
-    db.prepare('DELETE FROM medicines WHERE id = ?').run(id);
-
-    logAuditEvent(req.user, 'DELETE_MEDICINE', `Deleted medicine ID ${id}`);
-
-    res.json({ ok: true });
+    const result = await medicineService.deleteMedicine(req.user, req.params.id);
+    res.json(result);
   } catch (err) {
-    console.error('DELETE /api/medicines/:id failed:', err);
-    res.status(500).json({ error: 'Delete failed' });
+    const status = err.status || 500;
+    res.status(status).json({ error: err.message || 'Delete failed' });
   }
 };
