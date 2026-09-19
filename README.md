@@ -2,18 +2,18 @@
 
 [![Node.js](https://img.shields.io/badge/Node.js-v20.x-339933?logo=nodedotjs)](https://nodejs.org/)
 [![Express.js](https://img.shields.io/badge/Express.js-v4.x-000000?logo=express)](https://expressjs.com/)
-[![SQLite](https://img.shields.io/badge/SQLite-v3.x-003B57?logo=sqlite)](https://www.sqlite.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-v16.x-4169E1?logo=postgresql)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-v7.x-DC382D?logo=redis)](https://redis.io/)
 [![JWT Security](https://img.shields.io/badge/Auth-JWT_%26_bcrypt-FF6F00?logo=jsonwebtokens)](https://jwt.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**MediVault** is a next-generation pharmaceutical operating system designed for enterprise drug inventory control, multi-channel POS billing, automated expiry radar alerts, role-based access security (RBAC), and real-time security auditing. Built with a dual-database architecture, MediVault runs zero-config SQLite locally for development while offering instant PostgreSQL scaling for cloud deployment.
+**MediVault** is a next-generation pharmaceutical operating system designed for enterprise drug inventory control, multi-channel POS billing, automated expiry radar alerts, role-based access security (RBAC), and real-time security auditing. Built with a scalable **Layered Monolithic Architecture** (`Controllers -> Services -> Repositories -> Data Access`), MediVault leverages **PostgreSQL connection pooling**, **Redis read-aside caching**, atomic POS transactions, and exact numeric financial precision (`NUMERIC(12,2)`).
 
 ---
 
 ## 📋 Table of Contents
 - [System Overview](#-system-overview)
-- [Architecture & System Flow](#-architecture--system-flow)
+- [Architecture & Layered System Flow](#-architecture--layered-system-flow)
 - [Key Features](#-key-features)
 - [Tech Stack](#-tech-stack)
 - [Directory & Project Structure](#-directory--project-structure)
@@ -51,21 +51,27 @@ MediVault bridges the gap between pharmaceutical compliance, point-of-sale effic
 
 ---
 
-## 🏗️ Architecture & System Flow
+## 🏗️ Architecture & Layered System Flow
 
-MediVault follows a modular Model-View-Controller (MVC) design pattern powered by Express.js and client-side JavaScript.
+MediVault is structured as a clean, production-grade **Layered Monolith**:
 
 ```mermaid
 graph TD
-    User((User / Client)) -->|HTTP Requests| Router[Express Router / API Layer]
-    Router --> AuthMid{JWT Auth Middleware}
-    AuthMid -->|Authorized| RoleMid{Role Permission Gate}
-    RoleMid -->|Passed| Controller[Controller Handlers]
-    Controller -->|Audit Log Event| Audit[Audit Trail Service]
-    Controller -->|Read / Write| DBAdapter[Dual DB Abstraction Layer]
-    DBAdapter -->|SQLite Dev| SQLite[(SQLite Database)]
-    DBAdapter -->|Postgres Prod| PG[(PostgreSQL Database)]
+    User((User / Client)) -->|HTTP Requests| Express[Express Router]
+    Express --> AuthMid{JWT & RBAC Middleware}
+    AuthMid -->|Authorized| Controllers[Controller Layer]
+    Controllers -->|Business Logic| Services[Service Layer]
+    Services -->|Cache Check| Redis[(Redis Cache)]
+    Services -->|Data Persistence| Repositories[Repository Layer]
+    Repositories -->|SQL Connection Pool| PostgreSQL[(PostgreSQL 16 DB)]
+    Services -->|Audit Logging| AuditRepo[Audit Repository]
+    AuditRepo --> PostgreSQL
 ```
+
+- **Controller Layer**: Handles HTTP requests, input parameter extraction, and status codes.
+- **Service Layer**: Implements core business logic, atomic transaction coordination, financial calculations (`Math.round(x * 100) / 100`), and Redis read-aside caching logic.
+- **Repository Layer**: Encapsulates parameterized SQL queries and database connection management.
+- **Cache Layer**: Redis read-aside caching for catalog queries (`medicines:all`) and system configuration (`settings:all`), with automatic pattern invalidation on mutations and seamless PostgreSQL fallback if Redis is unavailable.
 
 ---
 
@@ -78,35 +84,28 @@ graph TD
   - **Pharmacist**: Stock inventory management, drug entry, bulk CSV imports, POS billing, and reports.
   - **Cashier**: Isolated access to the POS billing terminal without settings or inventory modification rights.
 
-### 🆔 2. Standardized Dynamic ID Engine
+### ⚡ 2. High-Performance PostgreSQL Connection Pooling
+- Built on `pg` connection pool with configurable maximum pool size (`DATABASE_POOL_MAX`), connection timeouts (`DATABASE_CONNECTION_TIMEOUT`), and idle eviction timers (`DATABASE_IDLE_TIMEOUT`).
+- B-tree indexing on frequently queried columns (`medicines.category`, `medicines.expiry_date`, `sales.sale_date`, `audit_logs.user_id`).
+
+### 🚀 3. Redis Caching & Graceful Fallback
+- **Read-Aside Strategy**: Frequent read operations check Redis first before querying PostgreSQL.
+- **Cache Invalidation**: Mutations (adding, updating, deleting medicines or settings) invalidate related cache keys (`medicines:*`, `settings:*`).
+- **Graceful Fallback**: If Redis service is offline, MediVault logs a warning and transparently serves queries directly from PostgreSQL without downtime.
+
+### 💳 4. Multi-Payment POS Billing & Atomic Transactions
+- Atomically executes checkout inside single SQL transactions (`BEGIN` ... `COMMIT` / `ROLLBACK`).
+- Prevents stock overselling via conditional atomic SQL decrements (`UPDATE medicines SET quantity = quantity - $1 WHERE id = $2 AND quantity >= $1`).
+- Accurate financial calculations with `NUMERIC(12,2)` columns and exact rounded service-layer arithmetic.
+
+### 🆔 5. Standardized Dynamic ID Engine
 - Automatically formats business records with standardized prefix identifiers:
   - **Medicines**: `MED-2026-xxx`
   - **Sales Invoices**: `INV-2026-xxx`
   - **Staff User Accounts**: `USR-xxx`
   - **Suppliers**: `SUP-xxx`
 
-### 💳 3. Multi-Payment POS Billing Terminal
-- Process customer orders with instant invoice printing and real-time inventory stock deduction.
-- Supports 5 payment payment methods:
-  - Cash Payment
-  - Credit / Debit Card
-  - UPI / QR Code Payment
-  - Net Banking
-  - Store Credit Account
-
-### 📊 4. Interactive Dashboard Result Modals
-- Clicking any dashboard stat card opens a direct pop-up detail modal without navigating away:
-  - **Total Stock Modal**: Complete drug inventory listing with inline editing.
-  - **Low Stock Modal**: Items below warning threshold (`≤ 10` default).
-  - **Near Expiry Modal**: Batches expiring within warning window (`≤ 30 days`).
-  - **Today's Revenue Modal**: Real-time sales transaction summary.
-
-### 🗄️ 5. Dual Database Engine (SQLite & PostgreSQL)
-- **Zero-Config Local Development**: Out-of-the-box synchronous `better-sqlite3` execution.
-- **Production Scaling**: Automatic switch to PostgreSQL (`pg` adapter) when `DATABASE_URL` environment variable is defined.
-- **Auto-Migrations & Seeder**: Auto-creates table schemas and seeds initial demo team accounts on startup.
-
-### 🛡️ 6. System Data Backup & Password-Protected Recovery
+### 🗄️ 6. System Data Backup & Recovery
 - **Export JSON Snapshot**: Download complete database backup files.
 - **Restore JSON Snapshot**: Upload and restore previous system database snapshots.
 - **Factory Reset**: Password-verified Admin database wipe & re-seeding.
@@ -118,10 +117,10 @@ graph TD
 | Component | Technology | Description |
 |---|---|---|
 | **Backend Runtime** | Node.js (v20+) | Event-driven JavaScript runtime |
-| **Web Framework** | Express.js (v4.x) | Fast, unopinionated REST API framework |
+| **Web Framework** | Express.js (v4.x) | Fast REST API framework |
 | **Authentication** | JWT & bcryptjs | Stateless JSON Web Tokens & salted password hashing |
-| **Database (Dev)** | SQLite (`better-sqlite3`) | High-performance embedded database |
-| **Database (Prod)** | PostgreSQL (`pg`) | Enterprise relational database |
+| **Database** | PostgreSQL (v16.x) | Enterprise relational database with `pg` connection pooling |
+| **Cache Store** | Redis (v7.x) | High-performance in-memory key-value cache |
 | **Frontend UI** | HTML5, CSS3, Vanilla JS | SPA architecture with dark/light glassmorphism design system |
 | **PDF Generation** | html2pdf.js | Native browser printable PDF invoice generator |
 
@@ -131,40 +130,42 @@ graph TD
 
 ```
 MediVault/
-├── data/
-│   └── medivault.db            # Local SQLite database instance (auto-generated)
+├── database/
+│   └── migrations/
+│       ├── 001_initial_schema.sql    # DDL schema for users, medicines, sales, items, audit, settings
+│       └── 002_indexes.sql           # Performance B-Tree indexes
+├── docs/
+│   ├── ARCHITECTURE.md               # Monolithic layer specifications & data flow
+│   ├── CONCURRENCY.md                # POS checkout atomicity & stock guard strategy
+│   ├── DATABASE_INDEXING.md          # Indexing rationale & query execution plans
+│   ├── DATABASE_MIGRATION.md         # SQLite to PostgreSQL migration guide
+│   ├── DEPLOYMENT.md                 # Production deployment & Docker guidelines
+│   ├── REDIS.md                      # Read-aside caching & invalidation rules
+│   └── SCALABILITY.md                # Connection pooling & performance benchmarks
 ├── public/
 │   ├── css/
-│   │   └── style.css           # Glassmorphism design tokens, light/dark themes
+│   │   └── style.css                 # Design system tokens, light/dark themes
 │   ├── js/
-│   │   ├── auth.js             # JWT authentication, session storage & RBAC gating
-│   │   └── script.js           # SPA navigation, POS billing, stat card modals
-│   └── index.html              # Landing page, dashboard, billing terminal & modals
+│   │   ├── auth.js                   # JWT authentication, session storage & RBAC gating
+│   │   └── script.js                 # SPA navigation, POS billing, stat card modals
+│   └── index.html                    # Dashboard, billing terminal & modals
+├── scripts/
+│   └── migrate-sqlite-to-postgres.js # Automated ETL migration utility
 ├── src/
 │   ├── config/
-│   │   ├── db.js               # Dual SQLite / PostgreSQL abstraction & ID generator
-│   │   └── migrate.js          # Database migrations & default demo account seeder
-│   ├── controllers/
-│   │   ├── auditController.js  # Security audit trail recorder & endpoints
-│   │   ├── authController.js   # Authentication & team user management
-│   │   ├── medicinesController.js # Drug inventory CRUD & batch management
-│   │   ├── salesController.js  # POS billing & multi-payment transaction handler
-│   │   └── settingsController.js # App preferences, backup export/import & reset
-│   ├── middlewares/
-│   │   ├── authMiddleware.js   # JWT verification middleware
-│   │   └── roleMiddleware.js   # RBAC permission middleware (Admin/Staff/Cashier)
-│   ├── routes/
-│   │   ├── auditRoutes.js
-│   │   ├── authRoutes.js
-│   │   ├── medicinesRoutes.js
-│   │   ├── reportsRoutes.js
-│   │   ├── salesRoutes.js
-│   │   └── settingsRoutes.js
-│   └── app.js                  # Express middleware mounting & API router binding
-├── server.js                   # Main application entry point
-├── package.json                # Project dependencies & scripts
-├── LICENSE                     # MIT License
-└── README.md                   # System documentation
+│   │   ├── migratePostgres.js        # DDL migration runner & demo data seeder
+│   │   ├── postgres.js               # PostgreSQL connection pool manager
+│   │   └── redis.js                  # Redis client, read-aside helper & fallback logic
+│   ├── controllers/                  # Express HTTP request & status handlers
+│   ├── middlewares/                  # JWT auth & RBAC permission gates
+│   ├── repositories/                 # Parameterized SQL query abstraction layer
+│   ├── services/                     # Business logic, transactions & Redis cache rules
+│   ├── routes/                       # Express router endpoints
+│   └── app.js                        # Middleware, routes, & GET /api/health endpoint
+├── server.js                         # Application entry point
+├── docker-compose.yml                # Production PostgreSQL 16 & Redis 7 services
+├── package.json                      # Project dependencies & npm scripts
+└── README.md                         # System documentation
 ```
 
 ---
@@ -185,48 +186,56 @@ When the server boots for the first time, it automatically seeds three default t
 
 ### Prerequisites
 - [Node.js](https://nodejs.org/) (v18.0.0 or higher)
-- [Git](https://git-scm.com/)
+- [PostgreSQL](https://www.postgresql.org/) (v16.x) or [Docker Desktop](https://www.docker.com/)
+- [Redis](https://redis.io/) (v7.x - optional for caching)
 
-### 1. Clone the Repository
+### 1. Clone & Install
 ```bash
 git clone https://github.com/G-Gowthamr/MediVault--Enterprise-Pharmacy-And-Inventory-Operating-System.git
 cd MediVault--Enterprise-Pharmacy-And-Inventory-Operating-System
-```
-
-### 2. Install Dependencies
-```bash
 npm install
 ```
 
-### 3. Start the Server
+### 2. Configure Environment
+Create `.env` in the root directory:
+```env
+PORT=3000
+NODE_ENV=development
+JWT_SECRET=your_super_secret_jwt_key_2026
+
+# PostgreSQL Connection
+PGHOST=localhost
+PGPORT=5432
+PGDATABASE=medivault
+PGUSER=postgres
+PGPASSWORD=your_password
+DATABASE_POOL_MAX=10
+
+# Redis Caching (Optional)
+REDIS_ENABLED=true
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+```
+
+### 3. Start PostgreSQL & Redis via Docker (Optional)
+```bash
+docker compose up -d
+```
+
+### 4. Start MediVault Server
 ```bash
 npm start
 ```
 
-### 4. Access the Application
-Open your web browser and navigate to:
-```
-http://localhost:3000
-```
-
----
-
-## ⚙️ Environment Variables
-
-Create a `.env` file in the root directory to customize system settings:
-
-```env
-PORT=3000
-JWT_SECRET=your_super_secret_jwt_key_2026
-NODE_ENV=development
-
-# Optional PostgreSQL Connection (Leave empty to use local SQLite)
-# DATABASE_URL=postgres://user:password@localhost:5432/medivault
-```
+### 5. Access the Application
+Open your web browser and navigate to `http://localhost:3000`.
 
 ---
 
 ## 📡 API Endpoints Overview
+
+### Health & Monitoring
+- `GET /api/health` - Check PostgreSQL database & Redis cache system status.
 
 ### Authentication & Users
 - `POST /api/auth/login` - Authenticate user & receive JWT token.
@@ -235,19 +244,19 @@ NODE_ENV=development
 - `POST /api/auth/users` - Create a new staff account *(Admin Only)*.
 
 ### Drug Inventory Management
-- `GET /api/medicines` - Fetch all pharmaceutical inventory products.
-- `POST /api/medicines` - Add a new medicine record.
-- `PUT /api/medicines/:id` - Update medicine details.
+- `GET /api/medicines` - Fetch all pharmaceutical inventory products (Redis cached).
+- `POST /api/medicines` - Add a new medicine record (invalidates cache).
+- `PUT /api/medicines/:id` - Update medicine details (invalidates cache).
 - `DELETE /api/medicines/:id` - Delete a medicine record *(Admin Only)*.
 - `POST /api/medicines/upload-csv` - Import bulk CSV batch file.
 
 ### POS Sales & Invoicing
 - `GET /api/sales` - Get all sales transactions.
-- `POST /api/sales` - Process a new customer checkout transaction.
+- `POST /api/sales` - Process a new customer checkout transaction (atomic SQL transaction).
 
 ### Settings & Maintenance
-- `GET /api/settings` - Retrieve system preferences.
-- `POST /api/settings` - Save updated preferences.
+- `GET /api/settings` - Retrieve system preferences (Redis cached).
+- `POST /api/settings` - Save updated preferences (invalidates cache).
 - `GET /api/settings/backup` - Export JSON system backup file *(Admin Only)*.
 - `POST /api/settings/restore` - Restore JSON system backup file *(Admin Only)*.
 - `POST /api/settings/reset` - Password-verified database reset *(Admin Only)*.
@@ -268,3 +277,4 @@ NODE_ENV=development
 This project is open-source software licensed under the [MIT License](LICENSE).
 
 Developed with ❤️ by **[Gowtham R](https://github.com/G-Gowthamr)**.
+
