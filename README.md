@@ -172,7 +172,9 @@ MediVault/
 
 ## 🔑 Default Demo Credentials
 
-When the server boots for the first time, it automatically seeds three default team accounts:
+> ⚠️ **SECURITY WARNING**: The default credentials listed below are seeded ONLY for local development, testing, and evaluation. **NEVER use these credentials in a live or production environment.** Change all default passwords immediately upon initial server deployment.
+
+When the server boots for the first time, it automatically seeds three default team accounts for evaluation:
 
 | Role | Email Address | Password | Permissions |
 |---|---|---|---|
